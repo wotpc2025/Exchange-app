@@ -1,0 +1,43 @@
+/* นำเข้า Tailwind v4 แบบเต็มตัว */
+@import "tailwindcss";
+
+:root {
+  --gold-primary: #f59e0b;
+  --gold-secondary: #fbbf24;
+  --slate-dark: #020617;
+}
+
+/* ใน v4 เราไม่ต้องใช้ @layer base { @apply ... } แบบเดิมก็ได้ */
+/* สามารถเขียน CSS มาตรฐานครอบทับได้เลย */
+body {
+  background-color: var(--slate-dark);
+  color: white;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* เอฟเฟกต์แสงฟุ้ง */
+.gold-glow {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  transition: all 0.3s ease;
+}
+
+.gold-glow:hover {
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.5);
+  transform: translateY(-2px);
+}
+
+/* การไล่เฉดสีทองแบบ Metallic */
+.text-gold-gradient {
+  background: linear-gradient(to bottom, #fef3c7, #f59e0b, #b45309);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+/* แผ่นกระจกฝ้า */
+.glass-card {
+  background-color: rgba(15, 23, 42, 0.4); /* slate-900/40 */
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

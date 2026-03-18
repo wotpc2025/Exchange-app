@@ -1,0 +1,247 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+
+export default function ItemDetail({ params }) {
+  const pathname = usePathname();
+  const id = pathname?.split("/").filter(Boolean).pop();
+
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showComplaint, setShowComplaint] = useState(false);
+  const [complaintReason, setComplaintReason] = useState("");
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/items/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setItem(data);
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchItem();
+  }, [id]);
+
+  // ✅ ฟังก์ชันเริ่มการเจรจา (สร้าง Exchange Request และไปหน้าแชท)
+  const startNegotiation = async () => {
+    if (!session) {
+      alert("กรุณาเข้าสู่ระบบก่อนเริ่มการเจรจา");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_id: item.id,
+          requester_email: session.user.email,
+          owner_email: item.owner_email,
+          offered_item: "เริ่มการเจรจาใหม่" // ข้อความเริ่มต้น
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        // เมื่อสร้าง request สำเร็จ ให้ไปที่หน้าแชทโดยใช้ id ของ request นั้น
+        router.push(`/chat/${data.id}`);
+      } else {
+        alert("เกิดข้อผิดพลาด: " + data.error);
+      }
+    } catch (error) {
+      console.error("Negotiation error:", error);
+      alert("ไม่สามารถเริ่มการเจรจาได้ในขณะนี้");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitComplaint = async (e) => {
+    e.preventDefault();
+    if (!session) {
+      alert("กรุณาเข้าสู่ระบบก่อนทำรายการร้องเรียน");
+      return;
+    }
+
+    if (!confirm("ยืนยันส่งคำร้องเรียนประกาศนี้?")) return;
+
+    setComplaintSubmitting(true);
+    try {
+      const res = await fetch(`/api/items/${id}/complaint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: complaintReason }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert("ส่งคำร้องเรียนไม่สำเร็จ: " + (data.error || "unknown error"));
+        return;
+      }
+
+      setComplaintReason("");
+      setShowComplaint(false);
+      alert("ส่งคำร้องเรียนเรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("Complaint error:", error);
+      alert("ไม่สามารถส่งคำร้องเรียนได้ในขณะนี้");
+    } finally {
+      setComplaintSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">กำลังโหลดข้อมูล...</div>;
+  if (!item) return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">ไม่พบสินค้านี้ในระบบ</div>;
+
+  return (
+    <div className="min-h-screen bg-[#020617] text-white py-20 px-6">
+      <div className="max-w-5xl mx-auto">
+        <button onClick={() => router.back()} className="mb-8 text-amber-500 flex items-center gap-2 hover:underline">
+          ← ย้อนกลับไปหน้าหลัก
+        </button>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* ส่วนโชว์รูปภาพ */}
+          <div className="glass-card p-4 rounded-[40px] border border-white/5 bg-slate-900/50">
+            {item.image_url ? (
+              <img src={item.image_url} alt={item.title} className="w-full rounded-[30px] shadow-2xl object-cover" />
+            ) : (
+              <div className="aspect-square flex items-center justify-center text-slate-500 italic border border-dashed border-white/10 rounded-[30px]">ไม่มีรูปภาพประกอบ</div>
+            )}
+          </div>
+
+          {/* ส่วนข้อมูลรายละเอียด */}
+          <div className="flex flex-col justify-center">
+            <span className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-2">{item.category}</span>
+            <h1 className="text-5xl font-black mb-4 text-white leading-tight">{item.title}</h1>
+            <p className="text-slate-400 text-lg leading-relaxed mb-8">{item.description}</p>
+            
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-8 mb-8">
+              <p className="text-amber-500 text-xs font-black uppercase mb-2 tracking-widest">สิ่งที่อยากแลกด้วย</p>
+              <p className="text-3xl font-bold italic text-amber-200">"{item.wishlist || "อะไรก็ได้"}"</p>
+            </div>
+
+            <div className="flex flex-col gap-4">
+               <p className="text-sm text-slate-500">ลงประกาศเมื่อ: {new Date(item.created_at).toLocaleDateString('th-TH')}</p>
+               
+               {/* เช็คว่าเป็นเจ้าของเองหรือไม่ ถ้าไม่ใช่ถึงจะโชว์ปุ่มแชท (admin ดูได้อย่างเดียว) */}
+               {session?.user?.role === "admin" ? (
+                 <div className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl text-center italic text-slate-400">
+                   คุณเป็นแอดมิน จึงดูรายละเอียดได้อย่างเดียว
+                 </div>
+               ) : session?.user?.email !== item.owner_email ? (
+                 <>
+                   <button 
+                     onClick={startNegotiation}
+                     disabled={isSubmitting}
+                     className="gold-glow bg-amber-500 text-slate-950 font-black py-5 px-8 rounded-2xl text-center text-xl hover:bg-amber-400 transition-all disabled:opacity-50"
+                   >
+                     {isSubmitting ? "กำลังเปิดห้องแชท..." : "💬 ทักแชทเจรจาขอแลก"}
+                   </button>
+
+                   <button
+                     onClick={() => {
+                       if (!session) {
+                         alert("กรุณาเข้าสู่ระบบก่อนทำรายการร้องเรียน");
+                         return;
+                       }
+                       setShowComplaint(true);
+                     }}
+                     className="bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 px-6 py-4 rounded-2xl transition-all font-black text-sm uppercase tracking-widest"
+                   >
+                     🚩 ร้องเรียนประกาศ
+                   </button>
+                 </>
+               ) : (
+                 <div className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl text-center italic text-slate-400">
+                   นี่คือรายการของคุณเอง
+                 </div>
+               )}
+              
+              <p className="text-center text-xs text-slate-600 italic">
+                เจ้าของ:{" "}
+                {item.owner_id ? (
+                  <Link
+                    href={`/users/${item.owner_id}`}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    {item.owner_name || item.owner_email}
+                  </Link>
+                ) : (
+                  item.owner_name || item.owner_email
+                )}
+              </p>
+            </div>
+
+            {showComplaint && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+                <div className="glass-card w-full max-w-lg rounded-[30px] border border-white/10 bg-slate-950/70 backdrop-blur-md p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-black text-red-300">ร้องเรียนประกาศ</h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        กรุณาระบุเหตุผล (ไม่บังคับ) เพื่อให้แอดมินตรวจสอบได้เร็วขึ้น
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowComplaint(false);
+                        setComplaintReason("");
+                      }}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={submitComplaint} className="mt-4 space-y-4">
+                    <textarea
+                      className="w-full bg-slate-900/60 rounded-2xl p-4 outline-none border border-white/10 focus:border-red-400/50 transition-all text-sm"
+                      rows={5}
+                      placeholder="พิมพ์เหตุผล เช่น โพสต์ไม่เหมาะสม, หลอกลวง, สแปม..."
+                      value={complaintReason}
+                      onChange={(e) => setComplaintReason(e.target.value)}
+                    />
+
+                    <div className="flex gap-3 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowComplaint(false);
+                          setComplaintReason("");
+                        }}
+                        className="px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-white/10 text-slate-300 hover:bg-white/5 transition-all"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        disabled={complaintSubmitting}
+                        className="px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-200 disabled:opacity-60 transition-all"
+                      >
+                        {complaintSubmitting ? "กำลังส่ง..." : "ส่งคำร้องเรียน"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
