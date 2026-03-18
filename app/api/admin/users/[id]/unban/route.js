@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
-import { getAppSession, requireAdmin } from "../../../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../../../lib/db.js";
+import { getAppSession, requireAdmin } from "../../../../../../lib/auth.js";
 
 export async function POST(req, { params }) {
   const session = await getAppSession();
@@ -18,12 +11,12 @@ export async function POST(req, { params }) {
   const { id } = await params;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
     await connection.execute(
       "UPDATE user_bans SET active = 0 WHERE user_id = ? AND active = 1",
       [id]
     );
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "unbanned" });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

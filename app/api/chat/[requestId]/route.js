@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../lib/db.js";
 
 // 🟢 GET: ดึงประวัติแชทและข้อมูลคำขอ
 export async function GET(req, { params }) {
   const { requestId } = await params;
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     // ดึงข้อมูลคำขอพร้อมรายละเอียดสินค้า
     const [requestData] = await connection.execute(
@@ -37,7 +30,7 @@ export async function GET(req, { params }) {
       [requestId]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ request: requestData[0], messages });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -49,14 +42,14 @@ export async function POST(req, { params }) {
   const { requestId } = await params;
   try {
     const { sender_email, message_text } = await req.json();
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     await connection.execute(
       "INSERT INTO messages (request_id, sender_email, message_text) VALUES (?, ?, ?)",
       [requestId, sender_email, message_text]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "ส่งข้อความแล้ว" });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getAppSession } from "../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../../lib/db.js";
 
 function clampRating(n) {
   const x = Number(n);
@@ -41,7 +34,7 @@ export async function POST(req, { params }) {
   }
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [reqRows] = await connection.execute(
       `SELECT r.id, r.status, r.owner_email, r.requester_email,
@@ -56,20 +49,20 @@ export async function POST(req, { params }) {
     );
 
     if (reqRows.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const r = reqRows[0];
     if (r.status !== "completed") {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Exchange not completed" }, { status: 400 });
     }
 
     const isOwner = r.owner_email === email;
     const isRequester = r.requester_email === email;
     if (!isOwner && !isRequester) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -98,7 +91,7 @@ export async function POST(req, { params }) {
       [trustScore, reviewedId]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ ok: true, trustScore });
   } catch (error) {
     // duplicate review (uniq constraint)

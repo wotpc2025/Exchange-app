@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getAppSession, requireAdmin } from "../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../lib/db.js";
 
 export async function GET() {
   const session = await getAppSession();
@@ -16,7 +9,7 @@ export async function GET() {
   }
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [rows] = await connection.execute(
       `SELECT u.id, u.email, u.name, u.image, u.role, u.created_at,
@@ -30,7 +23,7 @@ export async function GET() {
        ORDER BY u.created_at DESC`
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json(rows);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

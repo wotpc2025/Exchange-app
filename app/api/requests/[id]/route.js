@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../lib/db.js";
 
 export async function PUT(req, { params }) {
   const { id } = await params; // id ของ exchange_request
   try {
     const { status } = await req.json();
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     // 1. อัปเดตสถานะใน exchange_requests
     await connection.execute(
@@ -23,7 +16,7 @@ export async function PUT(req, { params }) {
     // หมายเหตุ: ไม่เปลี่ยน items เป็น exchanged ตอน accepted แล้ว
     // จะเปลี่ยนเป็น exchanged เมื่อทั้ง 2 ฝ่ายกดยืนยันสำเร็จ (ดู /api/requests/[id]/confirm)
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "อัปเดตสถานะสำเร็จ" }); // ✅ ต้องส่ง JSON กลับไปเสมอ
   } catch (error) {
     console.error(error);

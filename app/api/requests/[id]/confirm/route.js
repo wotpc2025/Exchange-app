@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getAppSession } from "../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../../lib/db.js";
 
 export async function POST(req, { params }) {
   const session = await getAppSession();
@@ -17,7 +10,7 @@ export async function POST(req, { params }) {
   const email = session.user.email;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [rows] = await connection.execute(
       `SELECT id, item_id, owner_email, requester_email, status,
@@ -29,14 +22,14 @@ export async function POST(req, { params }) {
     );
 
     if (rows.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const reqRow = rows[0];
 
     if (reqRow.status !== "accepted" && reqRow.status !== "completed") {
-      await connection.end();
+      await connection.release();
       return NextResponse.json(
         { error: "Request is not accepted" },
         { status: 400 }
@@ -46,7 +39,7 @@ export async function POST(req, { params }) {
     const isOwner = reqRow.owner_email === email;
     const isRequester = reqRow.requester_email === email;
     if (!isOwner && !isRequester) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -95,7 +88,7 @@ export async function POST(req, { params }) {
       );
     }
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({
       ok: true,
       confirmedBy: isOwner ? "owner" : "requester",

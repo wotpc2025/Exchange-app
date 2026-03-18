@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getAppSession, requireAdmin } from "../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../lib/db.js";
 
 // GET: student -> ดูของตัวเอง | admin -> ดูทั้งหมด
 export async function GET() {
@@ -18,7 +11,7 @@ export async function GET() {
   const email = session.user.email;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [rows] = isAdmin
       ? await connection.execute(
@@ -76,7 +69,7 @@ export async function GET() {
           [email]
         );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json(rows);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -95,7 +88,7 @@ export async function POST(req) {
   const studentEmail = session.user.email;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [created] = await connection.execute(
       "INSERT INTO support_conversations (student_email, status) VALUES (?, 'open')",
@@ -114,7 +107,7 @@ export async function POST(req) {
     }
 
     if (!conversationId || Number(conversationId) <= 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json(
         { error: "Failed to create conversation (invalid conversation id). Check AUTO_INCREMENT." },
         { status: 500 }
@@ -126,7 +119,7 @@ export async function POST(req) {
       [conversationId, studentEmail, text]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ conversation_id: conversationId }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

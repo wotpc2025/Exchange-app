@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../lib/db.js";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -17,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     // ข้อมูลผู้ใช้จากตาราง users (รวมฟิลด์ที่เพิ่มใหม่สำหรับโปรไฟล์)
     const [userRows] = await connection.execute(
@@ -35,7 +28,7 @@ export async function GET() {
     );
 
     if (userRows.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
@@ -66,7 +59,7 @@ export async function GET() {
       [dbUser.email]
     );
 
-    await connection.end();
+    await connection.release();
 
     const available = items.filter((i) => i.status === "available").length;
     const pending = items.filter((i) => i.status === "pending").length;
@@ -147,14 +140,14 @@ export async function PATCH(request) {
   }
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     await connection.execute(
       `UPDATE users SET ${updates.join(", ")} WHERE email = ?`,
       [...params, session.user.email]
     );
 
-    await connection.end();
+    await connection.release();
 
     return NextResponse.json({ success: true });
   } catch (error) {

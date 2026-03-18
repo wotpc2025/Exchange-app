@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import { db } from "../../../../lib/db.js";
 import { getAppSession } from "../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
 
 export async function GET(req, { params }) {
   const session = await getAppSession();
@@ -18,7 +11,7 @@ export async function GET(req, { params }) {
   const { id } = await params;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [userRows] = await connection.execute(
       `SELECT id, email, name, image, role,
@@ -35,7 +28,7 @@ export async function GET(req, { params }) {
     );
 
     if (userRows.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
@@ -64,7 +57,7 @@ export async function GET(req, { params }) {
       [dbUser.email]
     );
 
-    await connection.end();
+    await connection.release();
 
     const available = items.filter((i) => i.status === "available").length;
     const pending = items.filter((i) => i.status === "pending").length;

@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
-import { getAppSession, requireAdmin } from "../../../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../../../lib/db.js";
+import { getAppSession, requireAdmin } from "../../../../../../lib/auth.js";
 
 function computeEndAt(amount, unit) {
   const n = Number(amount);
@@ -48,7 +41,7 @@ export async function POST(req, { params }) {
   }
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     // ต้องมีใบแดงก่อนถึงจะแบนได้
     const [reds] = await connection.execute(
@@ -57,7 +50,7 @@ export async function POST(req, { params }) {
     );
     const redCount = reds[0]?.red_count || 0;
     if (redCount < 1) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json(
         { error: "ต้องมีใบแดงก่อนถึงจะแบนได้" },
         { status: 400 }
@@ -75,7 +68,7 @@ export async function POST(req, { params }) {
       [id, banType, endAt, reason, session.user.id || null]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "banned" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

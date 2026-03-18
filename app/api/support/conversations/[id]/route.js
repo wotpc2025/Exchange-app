@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import { db } from "../../../../../lib/db.js";
 import { getAppSession, requireAdmin } from "../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
 
 export async function GET(req, { params }) {
   const session = await getAppSession();
@@ -18,7 +11,7 @@ export async function GET(req, { params }) {
   const { id } = await params;
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [convs] = await connection.execute(
       `SELECT c.*,
@@ -39,13 +32,13 @@ export async function GET(req, { params }) {
       [id]
     );
     if (convs.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const conv = convs[0];
     if (!isAdmin && conv.student_email !== email) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -54,7 +47,7 @@ export async function GET(req, { params }) {
       [id]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ conversation: conv, messages });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -74,25 +67,25 @@ export async function POST(req, { params }) {
   if (!text) return NextResponse.json({ error: "message_text required" }, { status: 400 });
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     const [convs] = await connection.execute(
       "SELECT * FROM support_conversations WHERE id = ? LIMIT 1",
       [id]
     );
     if (convs.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     const conv = convs[0];
 
     if (conv.status !== "open") {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Conversation closed" }, { status: 400 });
     }
 
     if (!isAdmin && conv.student_email !== email) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -111,7 +104,7 @@ export async function POST(req, { params }) {
       [id, email, senderRole, text]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "sent" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

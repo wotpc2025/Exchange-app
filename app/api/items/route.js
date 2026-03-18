@@ -1,23 +1,15 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getAppSession } from "../../../lib/auth.js";
-
-// 🏠 คอนฟิกฐานข้อมูล (แยกไว้จะได้ไม่พิมพ์ซ้ำ)
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../lib/db.js";
 
 // 🟢 1. GET: สำหรับดึงรายการสิ่งของไปโชว์หน้าแรก (โค้ดเดิมของคุณ)
 export async function GET() {
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
     const [rows] = await connection.execute(
       "SELECT * FROM items WHERE approval_status = 'approved' AND approval_status <> 'removed' ORDER BY created_at DESC"
     );
-    await connection.end();
+    await connection.release();
     return NextResponse.json(rows);
   } catch (error) {
     console.error("API Error:", error);
@@ -33,7 +25,7 @@ export async function POST(req) {
     if (session.user?.role === 'admin') return NextResponse.json({ error: "Admins cannot create items" }, { status: 403 });
 
     const data = await req.json(); // รับข้อมูลจากหน้าบ้าน
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     // บันทึกโดยใช้ owner จาก session (ไม่เชื่อถือค่า owner_email จาก client)
     const ownerEmail = session.user.email;
@@ -50,7 +42,7 @@ export async function POST(req) {
       ]
     );
 
-    await connection.end();
+    await connection.release();
 
     return NextResponse.json({ message: "บันทึกสำเร็จ", id: result.insertId }, { status: 201 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import { db } from "../../../lib/db.js";
 
 export async function GET(req, { params }) {
   try {
@@ -7,12 +7,7 @@ export async function GET(req, { params }) {
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
-    const connection = await mysql.createConnection({
-      host: "localhost",
-      user: "root",
-      password: "",
-      database: "exchange", // ชื่อ DB ตรงตาม phpMyAdmin
-    });
+    const connection = await db.getConnection();
 
     // ดึงข้อมูลสินค้าชิ้นที่ระบุ พร้อมข้อมูลเจ้าของ
     const [rows] = await connection.execute(
@@ -24,7 +19,7 @@ export async function GET(req, { params }) {
        WHERE i.id = ?`,
       [id]
     );
-    await connection.end();
+    await connection.release();
 
     if (rows.length === 0) {
       return NextResponse.json({ message: "ไม่พบข้อมูลสินค้า" }, { status: 404 });
@@ -41,12 +36,10 @@ export async function GET(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     const { id } = await params;
-    const connection = await mysql.createConnection({
-      host: "localhost", user: "root", password: "", database: "exchange"
-    });
+    const connection = await db.getConnection();
 
     await connection.execute("DELETE FROM items WHERE id = ?", [id]);
-    await connection.end();
+    await connection.release();
 
     return NextResponse.json({ message: "ลบรายการสำเร็จ" });
   } catch (error) {
@@ -61,9 +54,7 @@ export async function PUT(req, { params }) {
     const body = await req.json();
     const { title, description, category, wishlist, image_url, status } = body;
 
-    const connection = await mysql.createConnection({
-      host: "localhost", user: "root", password: "", database: "exchange"
-    });
+    const connection = await db.getConnection();
 
     // ใช้ COALESCE หรือตรวจสอบค่าเพื่อให้รองรับการอัปเดตเฉพาะบางฟิลด์ (เช่น status อย่างเดียว)
     const [result] = await connection.execute(
@@ -78,7 +69,7 @@ export async function PUT(req, { params }) {
       [title || null, description || null, category || null, wishlist || null, image_url || null, status || null, id]
     );
 
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "อัปเดตสถานะสำเร็จ" });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

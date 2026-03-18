@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 import { getAppSession } from "../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../../../lib/db.js";
 
 export async function POST(req, { params }) {
   const session = await getAppSession();
@@ -17,7 +10,7 @@ export async function POST(req, { params }) {
   const { reason, evidenceText, evidenceImageUrl } = await req.json();
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
     await connection.execute(
       "INSERT INTO item_complaints (item_id, student_email, reason, evidence_text, evidence_image_url, status) VALUES (?, ?, ?, ?, ?, 'open')",
       [
@@ -28,7 +21,7 @@ export async function POST(req, { params }) {
         evidenceImageUrl || null,
       ]
     );
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "created" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

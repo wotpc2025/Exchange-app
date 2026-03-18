@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
+import { db } from "../../../lib/db.js";
 
 // 🔵 POST: สร้างคำขอใหม่ (เรียกใช้ตอนกดปุ่ม "ทักแชท")
 export async function POST(req) {
   try {
     const { item_id, requester_email, owner_email, offered_item } = await req.json();
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
 
     // 1. ตรวจสอบก่อนว่าเคยมี Request ระหว่างคู่นี้ในสินค้าชิ้นนี้หรือยัง (Optional)
     const [existing] = await connection.execute(
@@ -21,7 +14,7 @@ export async function POST(req) {
     );
 
     if (existing.length > 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ id: existing[0].id }); // ถ้ามีแล้วให้ส่ง ID เดิมกลับไปเลย
     }
 
@@ -31,7 +24,7 @@ export async function POST(req) {
       [item_id, requester_email, owner_email, offered_item]
     );
 
-    await connection.end();
+    await connection.release();
 
     // ✅ ส่ง JSON กลับไป (ป้องกัน Error SyntaxError)
     return NextResponse.json({ id: result.insertId }, { status: 201 });
@@ -47,7 +40,7 @@ export async function GET(req) {
   const userEmail = searchParams.get("user");
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
     const [rows] = await connection.execute(
       `SELECT r.*,
               i.title AS item_title,
@@ -64,7 +57,7 @@ export async function GET(req) {
        ORDER BY r.created_at DESC`,
       [userEmail, userEmail]
     );
-    await connection.end();
+    await connection.release();
     return NextResponse.json(rows);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

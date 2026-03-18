@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import { db } from "../../../../../../lib/db.js";
 import { getAppSession, requireAdmin } from "../../../../../../lib/auth.js";
-
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "exchange",
-};
 
 export async function POST(req, { params }) {
   const session = await getAppSession();
@@ -25,7 +18,7 @@ export async function POST(req, { params }) {
   const likeAdmin = Boolean(body?.likeAdmin);
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    const connection = await db.getConnection();
     const studentEmail = session.user.email;
 
     const [convs] = await connection.execute(
@@ -33,23 +26,23 @@ export async function POST(req, { params }) {
       [id]
     );
     if (convs.length === 0) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const conv = convs[0];
     if (conv.student_email !== studentEmail) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (conv.status !== "open") {
-      await connection.end();
+      await connection.release();
       return NextResponse.json({ error: "Conversation already closed" }, { status: 400 });
     }
 
     if (!conv.admin_email) {
-      await connection.end();
+      await connection.release();
       return NextResponse.json(
         { error: "ยังไม่มีแอดมินรับเรื่อง จึงยังปิดเคสไม่ได้" },
         { status: 400 }
@@ -79,7 +72,7 @@ export async function POST(req, { params }) {
     );
 
     await connection.commit();
-    await connection.end();
+    await connection.release();
     return NextResponse.json({ message: "closed" });
   } catch (error) {
     // ถ้า DB ยังไม่มีคอลัมน์ใหม่ ให้ขึ้น error ที่เข้าใจได้
