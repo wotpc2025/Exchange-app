@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { emitDataChanged } from "../../../../lib/refresh-bus";
 
 export default function EditItem({ params }) {
   const pathname = usePathname();
@@ -40,6 +41,7 @@ export default function EditItem({ params }) {
 
     if (res.ok) {
       alert("แก้ไขข้อมูลเรียบร้อย!");
+      emitDataChanged({ source: "edit-item", action: "updated", itemId: id });
       router.push(`/items/${id}`); // แก้เสร็จแล้วพากลับไปดูหน้ารายละเอียด
     }
   };

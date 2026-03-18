@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { emitDataChanged } from "../../lib/refresh-bus";
 
 export default function AddItemPage() {
   const { data: session } = useSession();
@@ -66,6 +67,7 @@ export default function AddItemPage() {
       // ✅ ตรวจสอบสถานะ response อย่างละเอียด
       if (response.ok) {
         alert("ลงประกาศสำเร็จแล้ว!");
+        emitDataChanged({ source: "add-item", action: "created" });
         router.push("/");
         router.refresh(); // ✅ Refresh ข้อมูลหน้าหลักให้เป็นปัจจุบัน
       } else {
