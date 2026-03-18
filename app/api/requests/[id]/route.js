@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "../../../../lib/db.js";
+import { db } from "@/lib/db.js";
 
 export async function PUT(req, { params }) {
   const { id } = await params; // id ของ exchange_request

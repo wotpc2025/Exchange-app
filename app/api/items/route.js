@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAppSession } from "../../../lib/auth.js";
-import { db } from "../../../lib/db.js";
+import { getAppSession } from "@/lib/auth.js";
+import { db } from "@/lib/db.js";
 
 // 🟢 1. GET: สำหรับดึงรายการสิ่งของไปโชว์หน้าแรก (โค้ดเดิมของคุณ)
 export async function GET() {

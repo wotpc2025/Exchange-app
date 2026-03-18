@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { emitDataChanged } from "../../../../lib/refresh-bus";
+import { emitDataChanged } from "@/lib/refresh-bus";
 
 export default function EditItem({ params }) {
   const pathname = usePathname();

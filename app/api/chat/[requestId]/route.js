@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "../../../../lib/db.js";
+import { db } from "@/lib/db.js";
 
 // 🟢 GET: ดึงประวัติแชทและข้อมูลคำขอ
 export async function GET(req, { params }) {

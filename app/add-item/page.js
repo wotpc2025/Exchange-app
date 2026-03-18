@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { emitDataChanged } from "../../lib/refresh-bus";
+import { emitDataChanged } from "@/lib/refresh-bus";
 
 export default function AddItemPage() {
   const { data: session } = useSession();

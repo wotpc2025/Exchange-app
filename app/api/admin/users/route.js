@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAppSession, requireAdmin } from "../../../../lib/auth.js";
-import { db } from "../../../../lib/db.js";
+import { getAppSession, requireAdmin } from "@/lib/auth.js";
+import { db } from "@/lib/db.js";
 
 export async function GET() {
   const session = await getAppSession();

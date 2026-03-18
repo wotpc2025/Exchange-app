@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "../../../lib/db.js";
+import { db } from "@/lib/db.js";
 
 // 🔵 POST: สร้างคำขอใหม่ (เรียกใช้ตอนกดปุ่ม "ทักแชท")
 export async function POST(req) {
