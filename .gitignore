@@ -24,5 +24,4 @@ yarn-error.log*
 Thumbs.db
 
 # Database (กรณีมีไฟล์ sqlite หรือ dump ไฟล์มาไว้ในเครื่อง)
-*.sql
 *.sqlite
