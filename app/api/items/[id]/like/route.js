@@ -68,7 +68,11 @@ export async function POST(req, { params }) {
 
     await connection.execute(
       `UPDATE users
-       SET admin_likes_received = COALESCE(admin_likes_received, 0) + 1
+       SET trust_score = COALESCE(trust_score, 0) + 1,
+           admin_likes_received = CASE
+             WHEN role = 'admin' THEN COALESCE(admin_likes_received, 0) + 1
+             ELSE admin_likes_received
+           END
        WHERE email = ?`,
       [item.exchanged_with_email]
     );

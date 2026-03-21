@@ -65,6 +65,11 @@ export async function GET() {
     const pending = items.filter((i) => i.status === "pending").length;
     const exchanged = items.filter((i) => i.status === "exchanged").length;
 
+    const trustScoreValue =
+      dbUser.trust_score !== null && dbUser.trust_score !== undefined
+        ? Number(dbUser.trust_score)
+        : Number(dbUser.admin_likes_received || 0);
+
     return NextResponse.json({
       user: {
         id: dbUser.id,
@@ -75,7 +80,7 @@ export async function GET() {
         faculty: dbUser.faculty,
         major: dbUser.major,
         contactInfo: dbUser.contact_info,
-        trustScore: dbUser.trust_score,
+        trustScore: Number.isFinite(trustScoreValue) ? trustScoreValue : 0,
         adminSuccessCases: dbUser.admin_success_cases,
         adminLikesReceived: dbUser.admin_likes_received,
         adminSince: dbUser.admin_since,
