@@ -219,15 +219,21 @@ export default function MyItems() {
                       <img src={item.image_url} className={`w-full h-full rounded-2xl object-cover shadow-lg ${item.status === 'exchanged' ? 'grayscale opacity-50' : ''}`} alt={item.title} />
                       {/* Badge แสดงสถานะปัจจุบัน */}
                       <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-md text-[9px] font-bold uppercase shadow-xl 
-                        ${item.approval_status !== 'approved' 
-                          ? 'bg-amber-500 text-slate-950 border-amber-400/50' 
-                          : item.status === 'available' 
-                            ? 'bg-green-500 text-white' 
-                            : item.status === 'pending' 
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-slate-700 text-slate-300'}`}
+                        ${item.approval_status === 'rejected'
+                          ? 'bg-red-500 text-white border-red-400/50'
+                          : item.approval_status !== 'approved' 
+                            ? 'bg-amber-500 text-slate-950 border-amber-400/50' 
+                            : item.status === 'available' 
+                              ? 'bg-green-500 text-white' 
+                              : item.status === 'pending' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-slate-700 text-slate-300'}`}
                       >
-                        {item.approval_status !== 'approved' ? 'รออนุมัติ' : item.status}
+                        {item.approval_status === 'rejected'
+                          ? 'ถูกปฏิเสธ'
+                          : item.approval_status !== 'approved'
+                            ? 'รออนุมัติ'
+                            : item.status}
                       </div>
                     </div>
                     <div>
