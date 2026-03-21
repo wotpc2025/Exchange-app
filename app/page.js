@@ -29,14 +29,19 @@ export default function HomePage() {
     fetchItems();
   }, []);
 
-  // ✅ ปรับ Logic: กรองข้อมูลและเรียงลำดับสถานะ
+  // ✅ กรองหน้าแรก: อนุมัติแล้วเท่านั้น, ไม่ถูกลบ, และยังไม่แลกสำเร็จ
   const filteredItems = items.filter((item) => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const approval = (item.approval_status || "").toLowerCase();
+    const status = (item.status || "").toLowerCase();
+    const isApproved = approval === "approved";
+    const isNotRemoved = approval !== "removed" && status !== "removed";
+    const isNotExchanged = status !== "exchanged";
+    const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "ทั้งหมด" || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return isApproved && isNotRemoved && isNotExchanged && matchesSearch && matchesCategory;
   }).sort((a, b) => {
-    // เรียงให้ของที่ 'available' หรือ 'pending' ขึ้นก่อน 'exchanged' (แลกแล้ว)
-    const order = { 'available': 1, 'pending': 2, 'exchanged': 3 };
+    // เหลือเฉพาะ available/pending จึงเรียงให้พร้อมแลกขึ้นก่อน
+    const order = { 'available': 1, 'pending': 2 };
     return (order[a.status] || 1) - (order[b.status] || 1);
   });
 

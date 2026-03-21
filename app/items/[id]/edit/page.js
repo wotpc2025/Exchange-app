@@ -5,7 +5,8 @@ import { emitDataChanged } from "@/lib/refresh-bus";
 
 export default function EditItem({ params }) {
   const pathname = usePathname();
-  const id = pathname?.split("/").filter(Boolean).pop();
+  // ใช้ params.id ถ้ามี (Next.js 13+), fallback เป็น path
+  const id = params?.id || pathname?.split("/").filter(Boolean).at(-2);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
