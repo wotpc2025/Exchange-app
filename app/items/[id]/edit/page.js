@@ -18,9 +18,19 @@ export default function EditItem({ params }) {
 
   // 1. ดึงข้อมูลเดิมมาโชว์ก่อน
   useEffect(() => {
+    if (!id) return;
     fetch(`/api/items/${id}`)
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('Fetch error:', res.status, err);
+          alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (err.message || res.status));
+          return null;
+        }
+        return res.json();
+      })
       .then(data => {
+        if (!data) return;
         setFormData({
           title: data.title ?? "",
           description: data.description ?? "",
@@ -28,6 +38,10 @@ export default function EditItem({ params }) {
           wishlist: data.wishlist ?? "",
           image_url: data.image_url ?? ""
         });
+      })
+      .catch(err => {
+        console.error('Unexpected error:', err);
+        alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
       });
   }, [id]);
 
