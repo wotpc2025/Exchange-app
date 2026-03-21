@@ -34,6 +34,24 @@ export default function ChatRoom({ params }) {
     return "ไม่ทราบสถานะ";
   };
 
+  const getThaiItemStatus = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "available") return "พร้อมแลก";
+    if (status === "pending") return "กำลังเจรจา";
+    if (status === "exchanged") return "แลกสำเร็จ";
+    if (status === "removed") return "ถูกลบ";
+    return "ไม่ระบุ";
+  };
+
+  const getItemStatusBadgeClass = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "available") return "bg-green-500/10 text-green-300 border border-green-500/30";
+    if (status === "pending") return "bg-blue-500/10 text-blue-300 border border-blue-500/30";
+    if (status === "exchanged") return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30";
+    if (status === "removed") return "bg-red-500/10 text-red-300 border border-red-500/30";
+    return "bg-slate-500/10 text-slate-300 border border-slate-500/30";
+  };
+
   // 1. ฟังก์ชันดึงข้อมูล (ดึงทั้งข้อมูลคำขอและข้อความ)
   const fetchData = async () => {
     try {
@@ -197,6 +215,11 @@ export default function ChatRoom({ params }) {
             <div className="flex items-center gap-2">
                <span className={`w-2 h-2 rounded-full animate-pulse ${requestInfo?.status === 'pending' ? 'bg-blue-500' : requestInfo?.status === 'accepted' ? 'bg-green-500' : 'bg-red-500'}`}></span>
               <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">สถานะ: {getThaiRequestStatus(requestInfo?.status)}</p>
+            </div>
+            <div className="mt-1">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest ${getItemStatusBadgeClass(requestInfo?.item_status)}`}>
+                สถานะโพสต์: {getThaiItemStatus(requestInfo?.item_status)}
+              </span>
             </div>
             <p className="text-[10px] text-slate-500 mt-1">
               {requestInfo?.owner_id ? (

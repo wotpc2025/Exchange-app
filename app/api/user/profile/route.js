@@ -61,9 +61,18 @@ export async function GET() {
 
     await connection.release();
 
-    const available = items.filter((i) => i.status === "available").length;
-    const pending = items.filter((i) => i.status === "pending").length;
-    const exchanged = items.filter((i) => i.status === "exchanged").length;
+    const approvedItems = items.filter(
+      (i) => String(i.approval_status || "").toLowerCase() === "approved"
+    );
+    const available = approvedItems.filter(
+      (i) => String(i.status || "").toLowerCase() === "available"
+    ).length;
+    const pending = approvedItems.filter(
+      (i) => String(i.status || "").toLowerCase() === "pending"
+    ).length;
+    const exchanged = approvedItems.filter(
+      (i) => String(i.status || "").toLowerCase() === "exchanged"
+    ).length;
 
     const trustScoreValue =
       dbUser.trust_score !== null && dbUser.trust_score !== undefined
