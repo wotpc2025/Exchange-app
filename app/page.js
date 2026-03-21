@@ -8,6 +8,7 @@ export default function HomePage() {
   const { data: session } = useSession();
   const [items, setItems] = useState([]); 
   const [loading, setLoading] = useState(true);
+  const [activeRequestCount, setActiveRequestCount] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
@@ -28,6 +29,27 @@ export default function HomePage() {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    const loadActiveRequests = async () => {
+      if (!session?.user?.email || session.user?.role !== "student") {
+        setActiveRequestCount(0);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/requests?user=${encodeURIComponent(session.user.email)}`);
+        const data = await res.json();
+        const rows = Array.isArray(data) ? data : [];
+        const activeCount = rows.filter((r) => String(r.status || "").toLowerCase() !== "completed").length;
+        setActiveRequestCount(activeCount);
+      } catch {
+        setActiveRequestCount(0);
+      }
+    };
+
+    loadActiveRequests();
+  }, [session?.user?.email, session?.user?.role]);
 
   // ✅ กรองหน้าแรก: อนุมัติแล้วเท่านั้น, ไม่ถูกลบ, และยังไม่แลกสำเร็จ
   const filteredItems = items.filter((item) => {
@@ -69,10 +91,11 @@ export default function HomePage() {
                       <div className="bg-slate-800/80 p-3 rounded-2xl border border-white/5 group-hover:border-amber-500/50 transition-all flex items-center justify-center text-xl">
                         💬กล่องข้อความ
                       </div>
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 border-2 border-[#020617]"></span>
-                      </span>
+                      {activeRequestCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-amber-500 border-2 border-[#020617] text-[9px] font-black text-slate-950">
+                          {activeRequestCount > 99 ? "99+" : activeRequestCount}
+                        </span>
+                      )}
                     </Link>
 
                     <Link href="/support" className="relative group">

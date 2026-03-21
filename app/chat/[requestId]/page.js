@@ -24,6 +24,15 @@ export default function ChatRoom({ params }) {
     comment: "",
   });
 
+  const getThaiRequestStatus = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "pending") return "รอการตอบรับ";
+    if (status === "accepted") return "ตอบรับแล้ว";
+    if (status === "rejected") return "ปฏิเสธแล้ว";
+    if (status === "completed") return "แลกสำเร็จแล้ว";
+    return "ไม่ทราบสถานะ";
+  };
+
   // 1. ฟังก์ชันดึงข้อมูล (ดึงทั้งข้อมูลคำขอและข้อความ)
   const fetchData = async () => {
     try {
@@ -81,7 +90,7 @@ export default function ChatRoom({ params }) {
 
   // 4. ฟังก์ชันตัดสินใจ (Accept/Reject)
   const handleDecision = async (newStatus) => {
-    if (!confirm(`คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะเป็น ${newStatus}?`)) return;
+    if (!confirm(`คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะเป็น ${getThaiRequestStatus(newStatus)}?`)) return;
 
     try {
       const res = await fetch(`/api/requests/${requestId}`, {
@@ -156,7 +165,7 @@ export default function ChatRoom({ params }) {
             <h2 className="font-bold text-sm md:text-base line-clamp-1">{requestInfo?.item_title}</h2>
             <div className="flex items-center gap-2">
                <span className={`w-2 h-2 rounded-full animate-pulse ${requestInfo?.status === 'pending' ? 'bg-blue-500' : requestInfo?.status === 'accepted' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-               <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Status: {requestInfo?.status}</p>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">สถานะ: {getThaiRequestStatus(requestInfo?.status)}</p>
             </div>
             <p className="text-[10px] text-slate-500 mt-1">
               {requestInfo?.owner_id ? (

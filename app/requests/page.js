@@ -10,6 +10,24 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getThaiRequestStatus = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "pending") return "รอการตอบรับ";
+    if (status === "accepted") return "ตอบรับแล้ว";
+    if (status === "rejected") return "ปฏิเสธแล้ว";
+    if (status === "completed") return "แลกสำเร็จแล้ว";
+    return "ไม่ทราบสถานะ";
+  };
+
+  const getRequestStatusClass = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "pending") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+    if (status === "accepted") return "bg-green-500/10 text-green-400 border border-green-500/20";
+    if (status === "rejected") return "bg-red-500/10 text-red-400 border border-red-500/20";
+    if (status === "completed") return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+    return "bg-slate-500/10 text-slate-300 border border-slate-500/20";
+  };
+
   useEffect(() => {
     if (session?.user?.email) {
       // ดึงข้อมูลคำขอแลกเปลี่ยนที่มีอีเมลเราเข้าไปเกี่ยวข้อง
@@ -114,12 +132,8 @@ export default function RequestsPage() {
                   </div>
 
                   <div className="text-right">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      req.status === 'pending' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
-                      req.status === 'accepted' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 
-                      'bg-red-500/10 text-red-400 border border-red-500/20'
-                    }`}>
-                      {req.status}
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getRequestStatusClass(req.status)}`}>
+                      {getThaiRequestStatus(req.status)}
                     </span>
                     <p className="text-[9px] text-slate-600 mt-2 uppercase">
                       {new Date(req.created_at).toLocaleDateString()}
