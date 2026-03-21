@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { categories } from "@/lib/categories";
 import { useSession, signOut, signIn } from "next-auth/react";
 import Link from "next/link";
 
@@ -144,13 +145,12 @@ export default function HomePage() {
           <select 
             className="bg-slate-900/50 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-amber-500 cursor-pointer text-white appearance-none min-w-[180px]"
             onChange={(e) => setSelectedCategory(e.target.value)}
+            value={selectedCategory}
           >
             <option value="ทั้งหมด">ทุกหมวดหมู่</option>
-            <option value="ของกิน">ของกิน</option>
-            <option value="ของใช้ทั่วไป">ของใช้ทั่วไป</option>
-            <option value="เครื่องเขียน">เครื่องเขียน</option>
-            <option value="อุปกรณ์ไอที">อุปกรณ์ไอที</option>
-            <option value="เสื้อผ้า">เสื้อผ้า</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </div>
 

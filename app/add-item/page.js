@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { categories } from "@/lib/categories";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { emitDataChanged } from "@/lib/refresh-bus";
@@ -23,7 +24,7 @@ export default function AddItemPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: "อุปกรณ์การเรียน",
+    category: categories[0],
     wishlist: "",
     image_data: ""
   });
@@ -141,13 +142,9 @@ export default function AddItemPage() {
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
               >
-                <option>อุปกรณ์การเรียน</option>
-                <option>เครื่องใช้ไฟฟ้า</option>
-                <option>เสื้อผ้า/รองเท้า</option>
-                <option>ของกิน/เครื่องดื่ม</option>
-                <option>เครื่องเขียน</option>
-                <option>อุปกรณ์ไอที</option>
-                <option>อื่นๆ</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
             </div>
           </div>
