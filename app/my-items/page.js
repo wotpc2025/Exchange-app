@@ -71,9 +71,14 @@ export default function MyItems() {
           <Link href="/" className="text-xl font-bold text-gold-gradient">
             BUU Exchange
           </Link>
-          <Link href="/" className="text-slate-400 hover:text-white transition-colors">
-            ← กลับหน้าหลัก
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/profile" className="text-slate-300 hover:text-amber-300 transition-colors text-sm font-semibold">
+              โปรไฟล์
+            </Link>
+            <Link href="/" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้าหลัก
+            </Link>
+          </div>
         </div>
       </nav>
     <div className="p-6 md:p-12">

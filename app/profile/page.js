@@ -62,7 +62,15 @@ export default function ProfilePage() {
     );
   }
 
-  if (loading || !profile) {
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center">
+        {error}
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center">
         กำลังโหลดข้อมูลโปรไฟล์...
@@ -70,10 +78,10 @@ export default function ProfilePage() {
     );
   }
 
-  if (error) {
+  if (!profile) {
     return (
       <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center">
-        {error}
+        ไม่พบข้อมูลโปรไฟล์
       </div>
     );
   }

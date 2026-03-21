@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { emitDataChanged } from "@/lib/refresh-bus";
+import Link from "next/link";
 
 export default function EditItem({ params }) {
   const pathname = usePathname();
@@ -65,12 +66,17 @@ export default function EditItem({ params }) {
       <div className="min-h-screen bg-[#020617] text-white">
         <nav className="glass-card sticky top-0 z-50 border-x-0 border-t-0 rounded-none px-6 bg-slate-950/50 backdrop-blur-md">
           <div className="mx-auto h-20 flex items-center justify-between">
-            <a href="/" className="text-xl font-bold text-gold-gradient">
+            <Link href="/" className="text-xl font-bold text-gold-gradient">
               BUU Exchange
-            </a>
-            <a href="/" className="text-slate-400 hover:text-white transition-colors">
-              ← กลับหน้าหลัก
-            </a>
+            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/profile" className="text-slate-300 hover:text-amber-300 transition-colors text-sm font-semibold">
+                โปรไฟล์
+              </Link>
+              <Link href="/" className="text-slate-400 hover:text-white transition-colors">
+                ← กลับหน้าหลัก
+              </Link>
+            </div>
           </div>
         </nav>
         <div className="max-w-2xl mx-auto glass-card p-8 rounded-[40px] border border-white/5 mt-10">
