@@ -7,6 +7,7 @@ export default function MyItems() {
   const { data: session } = useSession();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [markingExchangeId, setMarkingExchangeId] = useState(null);
   const [resubmittingId, setResubmittingId] = useState(null);
 
@@ -19,23 +20,27 @@ export default function MyItems() {
     return "ไม่ระบุสถานะ";
   };
 
+  const loadMyItems = async () => {
+    if (!session?.user?.email) return;
+    try {
+      const res = await fetch(`/api/items`);
+      const data = await res.json().catch(() => []);
+      const arr = Array.isArray(data) ? data : [];
+      const myData = arr.filter((item) => item.owner_email === session.user.email);
+      setItems(myData);
+    } catch (err) {
+      console.error("Error fetching items:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ดึงข้อมูลรายการของฉัน
   useEffect(() => {
     if (session?.user?.email) {
-      fetch(`/api/items`)
-        .then((res) => res.json())
-        .then((data) => {
-          const arr = Array.isArray(data) ? data : [];
-          const myData = arr.filter((item) => item.owner_email === session.user.email);
-          setItems(myData);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Error fetching items:", err);
-          setLoading(false);
-        });
+      loadMyItems();
     }
-  }, [session]);
+  }, [session?.user?.email]);
 
   // ✅ ฟังก์ชันอัปเดตสถานะ (available, pending, exchanged)
   const updateStatus = async (id, newStatus) => {
@@ -44,19 +49,28 @@ export default function MyItems() {
     if (newStatus === 'available') confirmMsg = "ยืนยันคืนสถานะเป็น 'พร้อมแลก'?";
     if (newStatus === 'exchanged') confirmMsg = "ยืนยันว่าแลกเปลี่ยนสำเร็จแล้ว?";
     if (!window.confirm(confirmMsg)) return;
+
+    setUpdatingStatusId(id);
     try {
       const res = await fetch(`/api/items/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+      const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
-        setItems(items.map(item => item.id === id ? { ...item, status: newStatus } : item));
-        if(newStatus === 'exchanged') alert("ยินดีด้วย! แลกเปลี่ยนสำเร็จแล้ว");
+      if (!res.ok) {
+        alert(data?.error || "เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+        return;
       }
+
+      setItems((prev) => prev.map((item) => item.id === id ? { ...item, status: newStatus } : item));
+      if(newStatus === 'exchanged') alert("ยินดีด้วย! แลกเปลี่ยนสำเร็จแล้ว");
+      await loadMyItems();
     } catch (error) {
       alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -263,8 +277,13 @@ export default function MyItems() {
                           onClick={() => updateStatus(item.id, itemStatus === 'available' ? 'pending' : 'available')}
                           className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border transition-all 
                           ${itemStatus === 'available' ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white' : 'border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white'}`}
+                          disabled={updatingStatusId === item.id}
                         >
-                          {itemStatus === 'available' ? '⌛ กำลังเจรจา' : '✅ คืนสถานะพร้อมแลก'}
+                          {updatingStatusId === item.id
+                            ? 'กำลังอัปเดต...'
+                            : itemStatus === 'available'
+                              ? '⌛ กำลังเจรจา'
+                              : '✅ คืนสถานะพร้อมแลก'}
                         </button>
                         <button 
                           onClick={() => markExchangedWithOnlyPartner(item)}
