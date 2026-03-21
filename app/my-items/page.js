@@ -27,6 +27,11 @@ export default function MyItems() {
 
   // ✅ ฟังก์ชันอัปเดตสถานะ (available, pending, exchanged)
   const updateStatus = async (id, newStatus) => {
+    let confirmMsg = "คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะรายการนี้?";
+    if (newStatus === 'pending') confirmMsg = "ยืนยันเปลี่ยนสถานะเป็น 'กำลังเจรจา'?";
+    if (newStatus === 'available') confirmMsg = "ยืนยันคืนสถานะเป็น 'พร้อมแลก'?";
+    if (newStatus === 'exchanged') confirmMsg = "ยืนยันว่าแลกเปลี่ยนสำเร็จแล้ว?";
+    if (!window.confirm(confirmMsg)) return;
     try {
       const res = await fetch(`/api/items/${id}`, {
         method: "PUT",

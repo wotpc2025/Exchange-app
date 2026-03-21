@@ -92,21 +92,19 @@ export default function AddItemPage() {
   };
 
   return (
-    <div className="min-h-screen py-10 px-4 bg-[#020617]">
-      {/* Navbar with Back Button */}
-      <div className="max-w-2xl mx-auto flex items-center mb-6">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-white hover:text-amber-500 font-bold px-4 py-2 rounded-full bg-slate-900/60 border border-white/10 shadow transition-all"
-        >
-          <span className="text-xl">←</span>
-          <span className="text-base">ย้อนกลับ</span>
-        </button>
-        <h1 className="flex-1 text-3xl font-black text-amber-500 text-center tracking-tighter uppercase">ลงประกาศใหม่</h1>
-      </div>
-      <div className="max-w-2xl mx-auto glass-card p-8 rounded-[40px] border border-white/5">
-        {/* ...existing code... */}
+    <div className="min-h-screen bg-[#020617] text-white">
+      <nav className="glass-card sticky top-0 z-50 border-x-0 border-t-0 rounded-none px-6 bg-slate-950/50 backdrop-blur-md">
+        <div className="mx-auto h-20 flex items-center justify-between">
+          <a href="/" className="text-xl font-bold text-gold-gradient">
+            BUU Exchange
+          </a>
+          <a href="/" className="text-slate-400 hover:text-white transition-colors">
+            ← กลับหน้าหลัก
+          </a>
+        </div>
+      </nav>
+      <div className="max-w-2xl mx-auto glass-card p-8 rounded-[40px] border border-white/5 mt-10">
+        <h1 className="text-3xl font-black text-amber-500 mb-6 text-center tracking-tighter uppercase">ลงประกาศใหม่</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 1. อัปโหลดรูปภาพ */}
           <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-3xl p-6 bg-slate-900/50 hover:border-amber-500/50 transition-all group">

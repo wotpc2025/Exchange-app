@@ -56,19 +56,20 @@ export default function EditItem({ params }) {
             <label className="block text-sm text-slate-400 mb-2">ชื่อสิ่งของ</label>
             <input 
               type="text" 
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white focus:border-amber-500 outline-none"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white opacity-70 cursor-not-allowed"
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              required
+              readOnly
+              disabled
             />
           </div>
 
           <div>
             <label className="block text-sm text-slate-400 mb-2">รายละเอียด (สภาพ/ตำหนิ)</label>
             <textarea 
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white h-32 outline-none"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white h-32 outline-none opacity-70 cursor-not-allowed"
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              readOnly
+              disabled
             />
           </div>
 
@@ -76,9 +77,10 @@ export default function EditItem({ params }) {
             <label className="block text-sm text-slate-400 mb-2">อยากแลกกับอะไร?</label>
             <input 
               type="text" 
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white outline-none"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white outline-none opacity-70 cursor-not-allowed"
               value={formData.wishlist}
-              onChange={(e) => setFormData({...formData, wishlist: e.target.value})}
+              readOnly
+              disabled
               placeholder="เช่น ขนม, ปากกา, หรืออะไรก็ได้"
             />
           </div>
