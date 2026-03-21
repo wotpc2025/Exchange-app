@@ -82,9 +82,11 @@ export async function POST(req, { params }) {
 
       await connection.execute(
         `UPDATE items
-         SET status = 'exchanged'
+         SET status = 'exchanged',
+             exchanged_with_email = ?,
+             exchanged_like_given = 0
          WHERE id = ?`,
-        [after.item_id]
+        [reqRow.requester_email, after.item_id]
       );
     }
 

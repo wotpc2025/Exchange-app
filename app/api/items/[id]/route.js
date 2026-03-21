@@ -52,7 +52,7 @@ export async function PUT(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, description, category, wishlist, image_url, status } = body;
+    const { title, description, category, wishlist, image_url, status, exchanged_with_email } = body;
 
     const connection = await db.getConnection();
 
@@ -64,9 +64,40 @@ export async function PUT(req, { params }) {
         category = COALESCE(?, category), 
         wishlist = COALESCE(?, wishlist), 
         image_url = COALESCE(?, image_url),
-        status = COALESCE(?, status)
+        status = COALESCE(?, status),
+        exchanged_with_email = CASE
+          WHEN ? = 'exchanged' THEN COALESCE(?, exchanged_with_email)
+          WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN NULL
+          ELSE exchanged_with_email
+        END,
+        exchanged_like_given = CASE
+          WHEN ? = 'exchanged' THEN 0
+          WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN 0
+          ELSE exchanged_like_given
+        END,
+        exchanged_liked_at = CASE
+          WHEN ? = 'exchanged' THEN NULL
+          WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN NULL
+          ELSE exchanged_liked_at
+        END
       WHERE id = ?`,
-      [title || null, description || null, category || null, wishlist || null, image_url || null, status || null, id]
+      [
+        title || null,
+        description || null,
+        category || null,
+        wishlist || null,
+        image_url || null,
+        status || null,
+        status || null,
+        exchanged_with_email || null,
+        status || null,
+        status || null,
+        status || null,
+        status || null,
+        status || null,
+        status || null,
+        id,
+      ]
     );
 
     await connection.release();

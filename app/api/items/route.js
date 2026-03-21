@@ -9,7 +9,7 @@ export async function GET() {
     // ดึง id, title, ... ทุก field ที่จำเป็น (ไม่ filter เฉพาะ approved)
     const [rows] = await connection.execute(
       `SELECT id, title, description, category, wishlist, image_url, owner_email, approval_status, created_at,
-        status
+        status, exchanged_with_email, exchanged_like_given
       FROM items ORDER BY created_at DESC`
     );
     await connection.release();

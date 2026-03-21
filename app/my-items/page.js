@@ -2,13 +2,17 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function MyItems() {
   const { data: session } = useSession();
-  const router = useRouter();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exchangeModalItem, setExchangeModalItem] = useState(null);
+  const [exchangePartners, setExchangePartners] = useState([]);
+  const [selectedPartnerEmail, setSelectedPartnerEmail] = useState("");
+  const [manualPartnerEmail, setManualPartnerEmail] = useState("");
+  const [loadingPartners, setLoadingPartners] = useState(false);
+  const [savingExchange, setSavingExchange] = useState(false);
 
   // ดึงข้อมูลรายการของฉัน
   useEffect(() => {
@@ -59,6 +63,114 @@ export default function MyItems() {
       } catch (error) {
         alert("เกิดข้อผิดพลาดในการลบ");
       }
+    }
+  };
+
+  const handleLikeExchangedUser = async (id) => {
+    if (!window.confirm("ยืนยันกดไลก์ให้ผู้ใช้ที่แลกเปลี่ยนกับคุณ?")) return;
+
+    try {
+      const res = await fetch(`/api/items/${id}/like`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data?.error || "กดไลก์ไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, exchanged_like_given: 1 } : item
+        )
+      );
+      alert("กดไลก์เรียบร้อยแล้ว ขอบคุณสำหรับฟีดแบ็กครับ");
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการกดไลก์");
+    }
+  };
+
+  const openExchangeModal = async (item) => {
+    setExchangeModalItem(item);
+    setSelectedPartnerEmail("");
+    setManualPartnerEmail("");
+    setLoadingPartners(true);
+    setExchangePartners([]);
+
+    try {
+      const res = await fetch(`/api/items/${item.id}/exchange-partners`);
+      const data = await res.json().catch(() => []);
+      if (!res.ok) {
+        alert(data?.error || "โหลดรายชื่อผู้ขอแลกไม่สำเร็จ");
+        setExchangeModalItem(null);
+        return;
+      }
+
+      const arr = Array.isArray(data) ? data : [];
+      setExchangePartners(arr);
+      if (arr.length === 1 && arr[0]?.requester_email) {
+        setSelectedPartnerEmail(arr[0].requester_email);
+      }
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการโหลดรายชื่อผู้ขอแลก");
+      setExchangeModalItem(null);
+    } finally {
+      setLoadingPartners(false);
+    }
+  };
+
+  const confirmExchangeWithPartner = async () => {
+    if (!exchangeModalItem) return;
+
+    const partnerEmail = (manualPartnerEmail.trim() || selectedPartnerEmail || "").trim();
+
+    if (!partnerEmail) {
+      alert("กรุณาเลือกหรือกรอกอีเมลผู้ที่แลกด้วย");
+      return;
+    }
+
+    if (!window.confirm("ยืนยันว่าแลกเปลี่ยนสำเร็จกับผู้ใช้นี้?")) return;
+
+    setSavingExchange(true);
+    try {
+      const res = await fetch(`/api/items/${exchangeModalItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "exchanged",
+          exchanged_with_email: partnerEmail,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || "อัปเดตสถานะแลกสำเร็จไม่สำเร็จ");
+        return;
+      }
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === exchangeModalItem.id
+            ? {
+                ...item,
+                status: "exchanged",
+                exchanged_with_email: partnerEmail,
+                exchanged_like_given: 0,
+              }
+            : item
+        )
+      );
+
+      setExchangeModalItem(null);
+      setExchangePartners([]);
+      setSelectedPartnerEmail("");
+      setManualPartnerEmail("");
+      alert("ยืนยันแลกสำเร็จแล้ว และสามารถกดไลก์ผู้ใช้คนนี้ได้");
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+    } finally {
+      setSavingExchange(false);
     }
   };
 
@@ -134,7 +246,7 @@ export default function MyItems() {
                           {item.status === 'available' ? '⌛ กำลังเจรจา' : '✅ คืนสถานะพร้อมแลก'}
                         </button>
                         <button 
-                          onClick={() => updateStatus(item.id, 'exchanged')}
+                          onClick={() => openExchangeModal(item)}
                           className="flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white transition-all"
                         >
                           🤝 แลกสำเร็จแล้ว
@@ -151,13 +263,25 @@ export default function MyItems() {
                     )}
                     {/* ถ้า exchanged หรือ removed ให้แสดงข้อความแทนปุ่ม */}
                     {(item.status === 'exchanged' || item.status === 'removed') && (
-                      <div className="text-xs text-slate-400 italic px-2 py-1">
+                      <div className="flex flex-col gap-2 text-xs text-slate-400 italic px-2 py-1">
                         {item.status === 'exchanged' ? (
                           <>
                             <span className="text-green-400 font-bold">แลกเปลี่ยนสำเร็จ</span>
                             {/* แสดงชื่อ/อีเมลผู้แลกเปลี่ยน ถ้ามี */}
                             {item.exchanged_with_email && (
                               <span> กับ <span className="text-amber-400">{item.exchanged_with_email}</span></span>
+                            )}
+                            {item.exchanged_with_email && (
+                              Number(item.exchanged_like_given) === 1 ? (
+                                <span className="text-pink-400 font-bold not-italic">คุณกดไลก์ผู้ใช้คนนี้แล้ว</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleLikeExchangedUser(item.id)}
+                                  className="not-italic w-fit px-3 py-1.5 rounded-lg text-[11px] font-bold border border-pink-500/40 text-pink-300 hover:bg-pink-500 hover:text-white transition-all"
+                                >
+                                  👍 กดถูกใจผู้ใช้ที่แลกสำเร็จ
+                                </button>
+                              )
                             )}
                           </>
                         ) : (
@@ -176,6 +300,60 @@ export default function MyItems() {
           )}
           </div>
       </div>
+
+      {exchangeModalItem && (
+        <div className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg glass-card rounded-3xl border border-white/10 bg-slate-900/90 p-6">
+            <h3 className="text-lg font-black text-amber-400">เลือกผู้ใช้ที่แลกสำเร็จ</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              โพสต์: <span className="text-slate-200 font-semibold">{exchangeModalItem.title}</span>
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <label className="block text-xs text-slate-300 font-semibold">เลือกจากผู้ที่ยื่นคำขอแลก</label>
+              <select
+                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white"
+                value={selectedPartnerEmail}
+                onChange={(e) => setSelectedPartnerEmail(e.target.value)}
+                disabled={loadingPartners}
+              >
+                <option value="">-- เลือกผู้ใช้ --</option>
+                {exchangePartners.map((partner) => (
+                  <option key={partner.requester_email} value={partner.requester_email}>
+                    {(partner.requester_name || "ไม่ระบุชื่อ")} ({partner.requester_email})
+                  </option>
+                ))}
+              </select>
+
+              <div className="text-[11px] text-slate-500">หรือกรอกอีเมลเอง (กรณีไม่ได้ผ่าน flow ยืนยันคำขอแลก)</div>
+              <input
+                type="email"
+                value={manualPartnerEmail}
+                onChange={(e) => setManualPartnerEmail(e.target.value)}
+                placeholder="example@buu.ac.th"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+              />
+            </div>
+
+            <div className="mt-5 flex gap-2 justify-end">
+              <button
+                onClick={() => setExchangeModalItem(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-white/20 text-slate-300 hover:bg-white/10 transition-all"
+                disabled={savingExchange}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmExchangeWithPartner}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-300 hover:bg-green-500 hover:text-white transition-all"
+                disabled={savingExchange}
+              >
+                {savingExchange ? "กำลังบันทึก..." : "ยืนยันแลกสำเร็จ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
