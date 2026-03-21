@@ -82,6 +82,7 @@ export default function SupportRoomPage({ params }) {
       }
       setShowCloseModal(false);
       await fetchData();
+      alert("ปิดเคสเรียบร้อยแล้ว");
     } finally {
       setClosing(false);
     }

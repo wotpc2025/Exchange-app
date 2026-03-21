@@ -46,8 +46,6 @@ export async function POST(req, { params }) {
       );
     }
 
-    await connection.beginTransaction();
-
     try {
       await connection.execute(
         `UPDATE support_conversations
@@ -85,26 +83,21 @@ export async function POST(req, { params }) {
       const msg = String(queryError?.message || "");
       if (!msg.includes("Unknown column")) throw queryError;
 
-      // fallback สำหรับ schema เก่า: อัปเดตเฉพาะคอลัมน์ที่มักมีอยู่
-      await connection.execute(
-        `UPDATE users
-            SET admin_success_cases = COALESCE(admin_success_cases, 0) + 1
-          WHERE email = ? AND role = 'admin'`,
-        [conv.admin_email]
-      );
-    }
-
-    await connection.commit();
-    return NextResponse.json({ message: "closed" });
-  } catch (error) {
-    if (connection) {
+      // fallback สำหรับ schema เก่า: พยายามอัปเดตเท่าที่ทำได้ แต่ไม่ทำให้ปิดเคสล้ม
       try {
-        await connection.rollback();
+        await connection.execute(
+          `UPDATE users
+              SET admin_success_cases = COALESCE(admin_success_cases, 0) + 1
+            WHERE email = ? AND role = 'admin'`,
+          [conv.admin_email]
+        );
       } catch {
-        // ignore rollback error
+        // ignore stats update error to keep close-case successful
       }
     }
 
+    return NextResponse.json({ message: "closed" });
+  } catch (error) {
     // ถ้า DB ยังไม่มีคอลัมน์ใหม่ ให้ขึ้น error ที่เข้าใจได้
     const msg = String(error?.message || "");
     if (msg.includes("Unknown column")) {
