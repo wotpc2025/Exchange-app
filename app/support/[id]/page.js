@@ -6,6 +6,13 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function SupportRoomPage({ params }) {
+  const getThaiSupportStatus = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "open") return "กำลังเปิดเคส";
+    if (status === "closed") return "ปิดเคสแล้ว";
+    return "ไม่ทราบสถานะ";
+  };
+
   const pathname = usePathname();
   const id = pathname?.split("/").filter(Boolean).pop();
 
@@ -108,7 +115,7 @@ export default function SupportRoomPage({ params }) {
               เคส #{id}
             </p>
             <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
-              Status: {conversation?.status}
+              สถานะ: {getThaiSupportStatus(conversation?.status)}
             </p>
             {!conversation?.admin_email && conversation?.status === "open" && (
               <p className="text-[10px] mt-1 text-slate-400">
