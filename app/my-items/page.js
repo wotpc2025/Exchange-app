@@ -8,6 +8,16 @@ export default function MyItems() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markingExchangeId, setMarkingExchangeId] = useState(null);
+  const [resubmittingId, setResubmittingId] = useState(null);
+
+  const getThaiItemStatus = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "available") return "พร้อมแลก";
+    if (status === "pending") return "กำลังเจรจา";
+    if (status === "exchanged") return "แลกสำเร็จ";
+    if (status === "removed") return "ถูกลบ";
+    return "ไม่ระบุสถานะ";
+  };
 
   // ดึงข้อมูลรายการของฉัน
   useEffect(() => {
@@ -144,6 +154,32 @@ export default function MyItems() {
     }
   };
 
+  const handleResubmitRejectedItem = async (id) => {
+    if (!window.confirm("ยืนยันส่งโพสต์นี้กลับไปให้แอดมินตรวจสอบอีกครั้ง?")) return;
+
+    setResubmittingId(id);
+    try {
+      const res = await fetch(`/api/items/${id}/resubmit`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data?.error || "ส่งตรวจใหม่ไม่สำเร็จ");
+        return;
+      }
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, approval_status: "pending" } : item
+        )
+      );
+      alert("ส่งตรวจใหม่เรียบร้อยแล้ว");
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการส่งตรวจใหม่");
+    } finally {
+      setResubmittingId(null);
+    }
+  };
+
   if (!session) return <div className="p-20 text-white text-center bg-[#020617] min-h-screen">กรุณาเข้าสู่ระบบ</div>;
 
   return (
@@ -205,8 +241,8 @@ export default function MyItems() {
                         {isRejected
                           ? 'ถูกปฏิเสธ'
                           : approvalStatus !== 'approved'
-                            ? 'รออนุมัติ'
-                            : itemStatus}
+                            ? 'รอตรวจสอบ'
+                            : getThaiItemStatus(itemStatus)}
                       </div>
                     </div>
                     <div>
@@ -247,6 +283,22 @@ export default function MyItems() {
                         </button>
                       </>
                     )}
+                    {isRejected && (
+                      <>
+                        <Link href={`/items/${item.id}/edit`} className="flex-1 md:flex-none">
+                          <button className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-2 rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all font-bold text-xs">
+                            แก้ไขโพสต์
+                          </button>
+                        </Link>
+                        <button
+                          onClick={() => handleResubmitRejectedItem(item.id)}
+                          className="flex-1 md:flex-none bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 px-4 py-2 rounded-xl hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold text-xs"
+                          disabled={resubmittingId === item.id}
+                        >
+                          {resubmittingId === item.id ? "กำลังส่ง..." : "แก้ไขแล้วส่งตรวจใหม่"}
+                        </button>
+                      </>
+                    )}
                     {/* ถ้า exchanged หรือ removed ให้แสดงข้อความแทนปุ่ม */}
                     {(itemStatus === 'exchanged' || itemStatus === 'removed' || isRejected) && (
                       <div className="flex flex-col gap-2 text-xs text-slate-400 italic px-2 py-1">
@@ -273,7 +325,7 @@ export default function MyItems() {
                         ) : isRejected ? (
                           <span className="text-red-400 font-bold">รายการนี้ถูกแอดมินปฏิเสธ</span>
                         ) : (
-                          <span className="text-red-400 font-bold">รายการนี้ถูกลบแล้ว</span>
+                          <span className="text-red-400 font-bold">รายการนี้{getThaiItemStatus(itemStatus)}แล้ว</span>
                         )}
                       </div>
                     )}
