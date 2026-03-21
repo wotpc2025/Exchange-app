@@ -98,6 +98,8 @@ export async function PUT(req, { params }) {
           status || null,
           status || null,
           status || null,
+          status || null,
+          status || null,
           id,
         ]
       );

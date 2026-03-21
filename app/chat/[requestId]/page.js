@@ -17,6 +17,7 @@ export default function ChatRoom({ params }) {
   const [loading, setLoading] = useState(true);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
+  const [markingNegotiation, setMarkingNegotiation] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     punctuality: 5,
     accuracy: 5,
@@ -105,6 +106,36 @@ export default function ChatRoom({ params }) {
       }
     } catch (error) {
       alert("เกิดข้อผิดพลาด");
+    }
+  };
+
+  const markItemAsNegotiating = async () => {
+    if (!requestInfo?.item_id) return;
+    if (!confirm("ต้องการเปลี่ยนสถานะโพสต์เป็น 'กำลังเจรจา' ใช่หรือไม่?")) return;
+
+    setMarkingNegotiation(true);
+    try {
+      const res = await fetch(`/api/items/${requestInfo.item_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "pending" }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || "เปลี่ยนสถานะเป็นกำลังเจรจาไม่สำเร็จ");
+        return;
+      }
+
+      setRequestInfo((prev) =>
+        prev ? { ...prev, item_status: "pending" } : prev
+      );
+      alert("เปลี่ยนสถานะโพสต์เป็นกำลังเจรจาแล้ว");
+      fetchData();
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการเปลี่ยนสถานะโพสต์");
+    } finally {
+      setMarkingNegotiation(false);
     }
   };
 
@@ -202,18 +233,30 @@ export default function ChatRoom({ params }) {
         {/* ส่วนปุ่มกดสำหรับเจ้าของสินค้า */}
         {requestInfo?.owner_email === session?.user?.email && requestInfo?.status === 'pending' && (
           <div className="flex gap-2">
-            <button 
-              onClick={() => handleDecision('accepted')} 
-              className="bg-green-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs hover:bg-green-400 transition-all"
-            >
-              รับแลก
-            </button>
-            <button 
-              onClick={() => handleDecision('rejected')} 
-              className="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl text-xs border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
-            >
-              ปฏิเสธ
-            </button>
+            {String(requestInfo?.item_status || "").toLowerCase() !== "pending" ? (
+              <button
+                onClick={markItemAsNegotiating}
+                disabled={markingNegotiation}
+                className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-xl text-xs border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
+              >
+                {markingNegotiation ? "กำลังอัปเดต..." : "ตั้งโพสต์เป็นกำลังเจรจาก่อน"}
+              </button>
+            ) : (
+              <>
+                <button 
+                  onClick={() => handleDecision('accepted')} 
+                  className="bg-green-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs hover:bg-green-400 transition-all"
+                >
+                  รับแลก
+                </button>
+                <button 
+                  onClick={() => handleDecision('rejected')} 
+                  className="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl text-xs border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
+                >
+                  ปฏิเสธ
+                </button>
+              </>
+            )}
           </div>
         )}
 
