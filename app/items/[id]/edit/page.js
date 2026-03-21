@@ -56,20 +56,19 @@ export default function EditItem({ params }) {
             <label className="block text-sm text-slate-400 mb-2">ชื่อสิ่งของ</label>
             <input 
               type="text" 
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white opacity-70 cursor-not-allowed"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white focus:border-amber-500 outline-none"
               value={formData.title}
-              readOnly
-              disabled
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              required
             />
           </div>
 
           <div>
             <label className="block text-sm text-slate-400 mb-2">รายละเอียด (สภาพ/ตำหนิ)</label>
             <textarea 
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white h-32 outline-none opacity-70 cursor-not-allowed"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 text-white h-32 outline-none"
               value={formData.description}
-              readOnly
-              disabled
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
             />
           </div>
 
