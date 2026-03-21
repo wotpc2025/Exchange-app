@@ -61,12 +61,58 @@ export default function EditItem({ params }) {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#020617] text-white p-8">
-      <div className="max-w-2xl mx-auto glass-card p-8 rounded-[40px] border border-white/5">
-        <h1 className="text-3xl font-black mb-8 text-amber-500">แก้ไขประกาศของคุณ</h1>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    return (
+      <div className="min-h-screen bg-[#020617] text-white">
+        <nav className="glass-card sticky top-0 z-50 border-x-0 border-t-0 rounded-none px-6 bg-slate-950/50 backdrop-blur-md">
+          <div className="mx-auto h-20 flex items-center justify-between">
+            <a href="/" className="text-xl font-bold text-gold-gradient">
+              BUU Exchange
+            </a>
+            <a href="/" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้าหลัก
+            </a>
+          </div>
+        </nav>
+        <div className="max-w-2xl mx-auto glass-card p-8 rounded-[40px] border border-white/5 mt-10">
+          <h1 className="text-3xl font-black mb-8 text-amber-500">แก้ไขประกาศของคุณ</h1>
+          {/* รูปภาพ */}
+          <div className="flex flex-col items-center justify-center mb-8">
+            {formData.image_url ? (
+              <div className="relative w-full flex justify-center mb-2">
+                <img src={formData.image_url} className="max-h-60 rounded-2xl shadow-2xl object-cover" alt="Preview" />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, image_url: "" })}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full font-bold shadow-lg"
+                >✕</button>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="text-slate-500 text-3xl mb-2">📸</div>
+                <div className="text-slate-400 text-sm mb-4">คลิกเพื่อเลือกรูปภาพสินค้าใหม่</div>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={e => {
+                const file = e.target.files[0];
+                if (file) {
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert("รูปภาพขนาดใหญ่เกินไปครับ (จำกัด 5MB)");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setFormData({ ...formData, image_url: reader.result });
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="text-xs text-slate-400 file:bg-amber-500 file:rounded-full file:border-0 file:px-4 file:py-2 file:font-bold cursor-pointer opacity-70 hover:opacity-100"
+            />
+          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>
             <label className="block text-sm text-slate-400 mb-2">ชื่อสิ่งของ</label>
             <input 
