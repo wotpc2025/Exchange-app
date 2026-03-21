@@ -41,7 +41,7 @@ export default function HomePage() {
         const res = await fetch(`/api/requests?user=${encodeURIComponent(session.user.email)}`);
         const data = await res.json();
         const rows = Array.isArray(data) ? data : [];
-        const activeCount = rows.filter((r) => String(r.status || "").toLowerCase() !== "completed").length;
+        const activeCount = rows.filter((r) => String(r.status || "").toLowerCase() === "pending").length;
         setActiveRequestCount(activeCount);
       } catch {
         setActiveRequestCount(0);
