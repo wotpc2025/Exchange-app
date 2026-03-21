@@ -320,7 +320,7 @@ export default function ChatRoom({ params }) {
             </button>
           )}
 
-          {requestInfo?.status === "completed" && requestInfo?.requester_email === session?.user?.email && (
+          {String(requestInfo?.item_status || "").toLowerCase() === "exchanged" && requestInfo?.requester_email === session?.user?.email && (
             Number(requestInfo?.exchanged_like_given) === 1 ? (
               <span className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-pink-500/30 bg-pink-500/10 text-pink-300">
                 ❤ กดหัวใจแล้ว
