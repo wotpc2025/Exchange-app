@@ -49,60 +49,80 @@ export async function DELETE(req, { params }) {
 
 // เพิ่ม/แก้ไขใน app/api/items/[id]/route.js
 export async function PUT(req, { params }) {
+  let connection;
   try {
     const { id } = await params;
     const body = await req.json();
     const { title, description, category, wishlist, image_url, status, exchanged_with_email } = body;
 
-    const connection = await db.getConnection();
+    connection = await db.getConnection();
 
-    // ใช้ COALESCE หรือตรวจสอบค่าเพื่อให้รองรับการอัปเดตเฉพาะบางฟิลด์ (เช่น status อย่างเดียว)
-    const [result] = await connection.execute(
-      `UPDATE items SET 
-        title = COALESCE(?, title), 
-        description = COALESCE(?, description), 
-        category = COALESCE(?, category), 
-        wishlist = COALESCE(?, wishlist), 
-        image_url = COALESCE(?, image_url),
-        status = COALESCE(?, status),
-        exchanged_with_email = CASE
-          WHEN ? = 'exchanged' THEN COALESCE(?, exchanged_with_email)
-          WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN NULL
-          ELSE exchanged_with_email
-        END,
-        exchanged_like_given = CASE
-          WHEN ? = 'exchanged' THEN 0
-          WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN 0
-          ELSE exchanged_like_given
-        END,
-        exchanged_liked_at = CASE
-          WHEN ? = 'exchanged' THEN NULL
-          WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN NULL
-          ELSE exchanged_liked_at
-        END
-      WHERE id = ?`,
-      [
-        title || null,
-        description || null,
-        category || null,
-        wishlist || null,
-        image_url || null,
-        status || null,
-        status || null,
-        exchanged_with_email || null,
-        status || null,
-        status || null,
-        status || null,
-        status || null,
-        status || null,
-        status || null,
-        id,
-      ]
-    );
+    try {
+      // โหมดใหม่: อัปเดตคอลัมน์ระบบแลกสำเร็จ/ไลก์ได้ครบ
+      await connection.execute(
+        `UPDATE items SET 
+          title = COALESCE(?, title), 
+          description = COALESCE(?, description), 
+          category = COALESCE(?, category), 
+          wishlist = COALESCE(?, wishlist), 
+          image_url = COALESCE(?, image_url),
+          status = COALESCE(?, status),
+          exchanged_with_email = CASE
+            WHEN ? = 'exchanged' THEN COALESCE(?, exchanged_with_email)
+            WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN NULL
+            ELSE exchanged_with_email
+          END,
+          exchanged_like_given = CASE
+            WHEN ? = 'exchanged' THEN 0
+            WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN 0
+            ELSE exchanged_like_given
+          END,
+          exchanged_liked_at = CASE
+            WHEN ? = 'exchanged' THEN NULL
+            WHEN ? IS NOT NULL AND ? <> 'exchanged' THEN NULL
+            ELSE exchanged_liked_at
+          END
+        WHERE id = ?`,
+        [
+          title || null,
+          description || null,
+          category || null,
+          wishlist || null,
+          image_url || null,
+          status || null,
+          status || null,
+          exchanged_with_email || null,
+          status || null,
+          status || null,
+          status || null,
+          status || null,
+          status || null,
+          status || null,
+          id,
+        ]
+      );
+    } catch (queryError) {
+      const msg = String(queryError?.message || "");
+      if (!msg.includes("Unknown column")) throw queryError;
 
-    await connection.release();
+      // โหมดเก่า: fallback เมื่อ DB ยังไม่เพิ่มคอลัมน์ใหม่
+      await connection.execute(
+        `UPDATE items SET 
+          title = COALESCE(?, title), 
+          description = COALESCE(?, description), 
+          category = COALESCE(?, category), 
+          wishlist = COALESCE(?, wishlist), 
+          image_url = COALESCE(?, image_url),
+          status = COALESCE(?, status)
+        WHERE id = ?`,
+        [title || null, description || null, category || null, wishlist || null, image_url || null, status || null, id]
+      );
+    }
+
     return NextResponse.json({ message: "อัปเดตสถานะสำเร็จ" });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  } finally {
+    if (connection) await connection.release();
   }
 }

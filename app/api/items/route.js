@@ -4,19 +4,43 @@ import { db } from "@/lib/db.js";
 
 // 🟢 1. GET: สำหรับดึงรายการสิ่งของไปโชว์หน้าแรก (โค้ดเดิมของคุณ)
 export async function GET() {
+  let connection;
   try {
-    const connection = await db.getConnection();
-    // ดึง id, title, ... ทุก field ที่จำเป็น (ไม่ filter เฉพาะ approved)
-    const [rows] = await connection.execute(
-      `SELECT id, title, description, category, wishlist, image_url, owner_email, approval_status, created_at,
-        status, exchanged_with_email, exchanged_like_given
-      FROM items ORDER BY created_at DESC`
-    );
-    await connection.release();
+    connection = await db.getConnection();
+    let rows;
+
+    try {
+      // โหมดใหม่: มีคอลัมน์ระบบแลกสำเร็จ + ไลก์
+      const [newRows] = await connection.execute(
+        `SELECT id, title, description, category, wishlist, image_url, owner_email, approval_status, created_at,
+          status, exchanged_with_email, exchanged_like_given
+        FROM items ORDER BY created_at DESC`
+      );
+      rows = newRows;
+    } catch (queryError) {
+      const msg = String(queryError?.message || "");
+      if (!msg.includes("Unknown column")) throw queryError;
+
+      // โหมดเก่า: fallback เมื่อ DB ยังไม่เพิ่มคอลัมน์ใหม่
+      const [legacyRows] = await connection.execute(
+        `SELECT id, title, description, category, wishlist, image_url, owner_email, approval_status, created_at,
+          status
+        FROM items ORDER BY created_at DESC`
+      );
+
+      rows = legacyRows.map((row) => ({
+        ...row,
+        exchanged_with_email: null,
+        exchanged_like_given: 0,
+      }));
+    }
+
     return NextResponse.json(rows);
   } catch (error) {
     console.error("API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  } finally {
+    if (connection) await connection.release();
   }
 }
 

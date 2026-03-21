@@ -25,7 +25,10 @@ export default function MyItems() {
           setItems(myData);
           setLoading(false);
         })
-        .catch((err) => console.error("Error fetching items:", err));
+        .catch((err) => {
+          console.error("Error fetching items:", err);
+          setLoading(false);
+        });
     }
   }, [session]);
 
