@@ -311,7 +311,7 @@ export default function ChatRoom({ params }) {
         )}
 
         <div className="flex items-center gap-2">
-          {(requestInfo?.status === "accepted" || requestInfo?.status === "completed") && (
+          {(requestInfo?.status === "accepted" || requestInfo?.status === "completed") && String(requestInfo?.item_status || "").toLowerCase() !== "exchanged" && (
             <button
               onClick={confirmExchange}
               className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
