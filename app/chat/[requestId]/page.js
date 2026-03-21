@@ -18,6 +18,7 @@ export default function ChatRoom({ params }) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [markingNegotiation, setMarkingNegotiation] = useState(false);
+  const [likingOwner, setLikingOwner] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     punctuality: 5,
     accuracy: 5,
@@ -179,6 +180,32 @@ export default function ChatRoom({ params }) {
     }
   };
 
+  const likePostOwner = async () => {
+    if (!requestInfo?.item_id) return;
+    if (!confirm("ยืนยันกดหัวใจให้เจ้าของโพสต์?")) return;
+
+    setLikingOwner(true);
+    try {
+      const res = await fetch(`/api/items/${requestInfo.item_id}/like`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || "กดหัวใจไม่สำเร็จ");
+        return;
+      }
+
+      setRequestInfo((prev) =>
+        prev ? { ...prev, exchanged_like_given: 1 } : prev
+      );
+      alert("กดหัวใจให้เจ้าของโพสต์เรียบร้อยแล้ว");
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการกดหัวใจ");
+    } finally {
+      setLikingOwner(false);
+    }
+  };
+
   const submitReview = async (e) => {
     e.preventDefault();
     setReviewBusy(true);
@@ -291,6 +318,22 @@ export default function ChatRoom({ params }) {
             >
               ยืนยันแลกสำเร็จ
             </button>
+          )}
+
+          {requestInfo?.status === "completed" && requestInfo?.requester_email === session?.user?.email && (
+            Number(requestInfo?.exchanged_like_given) === 1 ? (
+              <span className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-pink-500/30 bg-pink-500/10 text-pink-300">
+                ❤ กดหัวใจแล้ว
+              </span>
+            ) : (
+              <button
+                onClick={likePostOwner}
+                disabled={likingOwner}
+                className="bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-60"
+              >
+                {likingOwner ? "กำลังกดหัวใจ..." : "❤ กดหัวใจให้เจ้าของโพสต์"}
+              </button>
+            )
           )}
 
           {requestInfo?.status === "completed" && (

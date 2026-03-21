@@ -328,7 +328,7 @@ export default function MyItems() {
                             {item.exchanged_with_email && (
                               <span> กับ <span className="text-amber-400">{item.exchanged_with_email}</span></span>
                             )}
-                            {item.exchanged_with_email && (
+                            {item.exchanged_with_email && session?.user?.email === item.exchanged_with_email && (
                               Number(item.exchanged_like_given) === 1 ? (
                                 <span className="text-pink-400 font-bold not-italic">คุณกดไลก์ผู้ใช้คนนี้แล้ว</span>
                               ) : (

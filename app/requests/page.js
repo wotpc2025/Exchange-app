@@ -19,6 +19,15 @@ export default function RequestsPage() {
     return "ไม่ทราบสถานะ";
   };
 
+  const getThaiItemStatus = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "available") return "พร้อมแลก";
+    if (status === "pending") return "กำลังเจรจา";
+    if (status === "exchanged") return "แลกสำเร็จ";
+    if (status === "removed") return "ถูกลบ";
+    return "ไม่ระบุ";
+  };
+
   const getRequestStatusClass = (rawStatus) => {
     const status = String(rawStatus || "").toLowerCase();
     if (status === "pending") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
@@ -26,6 +35,15 @@ export default function RequestsPage() {
     if (status === "rejected") return "bg-red-500/10 text-red-400 border border-red-500/20";
     if (status === "completed") return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
     return "bg-slate-500/10 text-slate-300 border border-slate-500/20";
+  };
+
+  const getItemStatusClass = (rawStatus) => {
+    const status = String(rawStatus || "").toLowerCase();
+    if (status === "available") return "bg-green-500/10 text-green-300 border border-green-500/30";
+    if (status === "pending") return "bg-blue-500/10 text-blue-300 border border-blue-500/30";
+    if (status === "exchanged") return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30";
+    if (status === "removed") return "bg-red-500/10 text-red-300 border border-red-500/30";
+    return "bg-slate-500/10 text-slate-300 border border-slate-500/30";
   };
 
   useEffect(() => {
@@ -132,9 +150,12 @@ export default function RequestsPage() {
                   </div>
 
                   <div className="text-right">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getRequestStatusClass(req.status)}`}>
-                      {getThaiRequestStatus(req.status)}
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getItemStatusClass(req.item_status)}`}>
+                      {getThaiItemStatus(req.item_status)}
                     </span>
+                    <p className="text-[10px] text-slate-500 mt-2 font-bold">
+                      คำขอ: {getThaiRequestStatus(req.status)}
+                    </p>
                     <p className="text-[9px] text-slate-600 mt-2 uppercase">
                       {new Date(req.created_at).toLocaleDateString()}
                     </p>

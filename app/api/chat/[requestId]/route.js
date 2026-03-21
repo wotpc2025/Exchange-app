@@ -14,6 +14,7 @@ export async function GET(req, { params }) {
               i.image_url as item_image,
               i.status as item_status,
               i.approval_status as item_approval_status,
+              i.exchanged_like_given as exchanged_like_given,
               owner.id AS owner_id,
               owner.name AS owner_name,
               requester.id AS requester_id,

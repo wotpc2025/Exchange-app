@@ -30,7 +30,7 @@ export async function POST(req, { params }) {
 
     const item = itemRows[0];
 
-    if (item.owner_email !== likerEmail) {
+    if (item.exchanged_with_email !== likerEmail) {
       await connection.rollback();
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -58,7 +58,7 @@ export async function POST(req, { params }) {
        FROM users
        WHERE email = ?
        LIMIT 1`,
-      [item.exchanged_with_email]
+      [item.owner_email]
     );
 
     if (likedUserRows.length === 0) {
@@ -74,7 +74,7 @@ export async function POST(req, { params }) {
              ELSE admin_likes_received
            END
        WHERE email = ?`,
-      [item.exchanged_with_email]
+      [item.owner_email]
     );
 
     await connection.execute(

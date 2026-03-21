@@ -45,6 +45,7 @@ export async function GET(req) {
       `SELECT r.*,
               i.title AS item_title,
               i.image_url AS item_image,
+              i.status AS item_status,
               owner.id AS owner_id,
               owner.name AS owner_name,
               requester.id AS requester_id,
