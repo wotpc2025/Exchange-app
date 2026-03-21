@@ -7,12 +7,7 @@ export default function MyItems() {
   const { data: session } = useSession();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exchangeModalItem, setExchangeModalItem] = useState(null);
-  const [exchangePartners, setExchangePartners] = useState([]);
-  const [selectedPartnerEmail, setSelectedPartnerEmail] = useState("");
-  const [manualPartnerEmail, setManualPartnerEmail] = useState("");
-  const [loadingPartners, setLoadingPartners] = useState(false);
-  const [savingExchange, setSavingExchange] = useState(false);
+  const [markingExchangeId, setMarkingExchangeId] = useState(null);
 
   // ดึงข้อมูลรายการของฉัน
   useEffect(() => {
@@ -94,50 +89,26 @@ export default function MyItems() {
     }
   };
 
-  const openExchangeModal = async (item) => {
-    setExchangeModalItem(item);
-    setSelectedPartnerEmail("");
-    setManualPartnerEmail("");
-    setLoadingPartners(true);
-    setExchangePartners([]);
+  const markExchangedWithOnlyPartner = async (item) => {
+    if (!window.confirm("ยืนยันว่าแลกเปลี่ยนสำเร็จแล้ว?")) return;
 
+    setMarkingExchangeId(item.id);
     try {
-      const res = await fetch(`/api/items/${item.id}/exchange-partners`);
-      const data = await res.json().catch(() => []);
-      if (!res.ok) {
-        alert(data?.error || "โหลดรายชื่อผู้ขอแลกไม่สำเร็จ");
-        setExchangeModalItem(null);
+      const partnerRes = await fetch(`/api/items/${item.id}/exchange-partners`);
+      const partnerData = await partnerRes.json().catch(() => []);
+      if (!partnerRes.ok) {
+        alert(partnerData?.error || "โหลดข้อมูลผู้ขอแลกไม่สำเร็จ");
         return;
       }
 
-      const arr = Array.isArray(data) ? data : [];
-      setExchangePartners(arr);
-      if (arr.length === 1 && arr[0]?.requester_email) {
-        setSelectedPartnerEmail(arr[0].requester_email);
+      const partners = Array.isArray(partnerData) ? partnerData : [];
+      if (partners.length !== 1 || !partners[0]?.requester_email) {
+        alert("ระบบต้องมีผู้ขอแลกที่ยืนยันได้เพียง 1 คนต่อโพสต์ จึงจะตั้งสถานะแลกสำเร็จได้");
+        return;
       }
-    } catch (error) {
-      alert("เกิดข้อผิดพลาดในการโหลดรายชื่อผู้ขอแลก");
-      setExchangeModalItem(null);
-    } finally {
-      setLoadingPartners(false);
-    }
-  };
 
-  const confirmExchangeWithPartner = async () => {
-    if (!exchangeModalItem) return;
-
-    const partnerEmail = (manualPartnerEmail.trim() || selectedPartnerEmail || "").trim();
-
-    if (!partnerEmail) {
-      alert("กรุณาเลือกหรือกรอกอีเมลผู้ที่แลกด้วย");
-      return;
-    }
-
-    if (!window.confirm("ยืนยันว่าแลกเปลี่ยนสำเร็จกับผู้ใช้นี้?")) return;
-
-    setSavingExchange(true);
-    try {
-      const res = await fetch(`/api/items/${exchangeModalItem.id}`, {
+      const partnerEmail = partners[0].requester_email;
+      const res = await fetch(`/api/items/${item.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,27 +124,23 @@ export default function MyItems() {
       }
 
       setItems((prev) =>
-        prev.map((item) =>
-          item.id === exchangeModalItem.id
+        prev.map((current) =>
+          current.id === item.id
             ? {
-                ...item,
+                ...current,
                 status: "exchanged",
                 exchanged_with_email: partnerEmail,
                 exchanged_like_given: 0,
               }
-            : item
+            : current
         )
       );
 
-      setExchangeModalItem(null);
-      setExchangePartners([]);
-      setSelectedPartnerEmail("");
-      setManualPartnerEmail("");
-      alert("ยืนยันแลกสำเร็จแล้ว และสามารถกดไลก์ผู้ใช้คนนี้ได้");
+      alert("ยืนยันแลกสำเร็จแล้ว สามารถกดหัวใจให้ผู้ใช้ที่แลกด้วยได้");
     } catch (error) {
       alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
     } finally {
-      setSavingExchange(false);
+      setMarkingExchangeId(null);
     }
   };
 
@@ -211,54 +178,64 @@ export default function MyItems() {
           {loading ? (
             <div className="text-center py-10 text-slate-500">กำลังโหลดรายการของคุณ...</div>
           ) : items.length > 0 ? (
-            items.map((item) => (
+            items.map((item) => {
+              const approvalStatus = String(item.approval_status || "").toLowerCase();
+              const itemStatus = String(item.status || "").toLowerCase();
+              const isRejected = approvalStatus === "rejected" || approvalStatus === "reject";
+              const canManageItem = !isRejected && itemStatus !== "exchanged" && itemStatus !== "removed";
+
+              return (
               <div key={item.id} className="glass-card p-6 flex flex-col border border-white/5 bg-white/5 rounded-[35px] hover:border-white/10 transition-all">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
                   <div className="flex gap-5 items-center">
                     <div className="relative w-20 h-20 shrink-0">
-                      <img src={item.image_url} className={`w-full h-full rounded-2xl object-cover shadow-lg ${item.status === 'exchanged' ? 'grayscale opacity-50' : ''}`} alt={item.title} />
+                      <img src={item.image_url} className={`w-full h-full rounded-2xl object-cover shadow-lg ${itemStatus === 'exchanged' ? 'grayscale opacity-50' : ''}`} alt={item.title} />
                       {/* Badge แสดงสถานะปัจจุบัน */}
                       <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-md text-[9px] font-bold uppercase shadow-xl 
-                        ${item.approval_status === 'rejected'
+                        ${isRejected
                           ? 'bg-red-500 text-white border-red-400/50'
-                          : item.approval_status !== 'approved' 
+                          : approvalStatus !== 'approved' 
                             ? 'bg-amber-500 text-slate-950 border-amber-400/50' 
-                            : item.status === 'available' 
+                            : itemStatus === 'available' 
                               ? 'bg-green-500 text-white' 
-                              : item.status === 'pending' 
+                              : itemStatus === 'pending' 
                                 ? 'bg-blue-500 text-white' 
                                 : 'bg-slate-700 text-slate-300'}`}
                       >
-                        {item.approval_status === 'rejected'
+                        {isRejected
                           ? 'ถูกปฏิเสธ'
-                          : item.approval_status !== 'approved'
+                          : approvalStatus !== 'approved'
                             ? 'รออนุมัติ'
-                            : item.status}
+                            : itemStatus}
                       </div>
                     </div>
                     <div>
                       <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">{item.category}</span>
                       <h3 className="font-bold text-lg text-white leading-tight">{item.title}</h3>
                       <p className="text-xs text-slate-400 mt-1 italic">แลกกับ: {item.wishlist || "อะไรก็ได้"}</p>
+                      {isRejected && (
+                        <p className="text-xs text-red-400 mt-1 font-semibold">โพสต์นี้ถูกปฏิเสธโดยแอดมิน</p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2 w-full md:w-auto">
                     {/* ปุ่มเปลี่ยนสถานะ, แก้ไข, ลบ: แสดงเฉพาะถ้าไม่ใช่ exchanged หรือ removed */}
-                    {item.status !== 'exchanged' && item.status !== 'removed' && (
+                    {canManageItem && (
                       <>
                         <button 
-                          onClick={() => updateStatus(item.id, item.status === 'available' ? 'pending' : 'available')}
+                          onClick={() => updateStatus(item.id, itemStatus === 'available' ? 'pending' : 'available')}
                           className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border transition-all 
-                          ${item.status === 'available' ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white' : 'border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white'}`}
+                          ${itemStatus === 'available' ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white' : 'border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white'}`}
                         >
-                          {item.status === 'available' ? '⌛ กำลังเจรจา' : '✅ คืนสถานะพร้อมแลก'}
+                          {itemStatus === 'available' ? '⌛ กำลังเจรจา' : '✅ คืนสถานะพร้อมแลก'}
                         </button>
                         <button 
-                          onClick={() => openExchangeModal(item)}
+                          onClick={() => markExchangedWithOnlyPartner(item)}
                           className="flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white transition-all"
+                          disabled={markingExchangeId === item.id}
                         >
-                          🤝 แลกสำเร็จแล้ว
+                          {markingExchangeId === item.id ? "กำลังบันทึก..." : "🤝 แลกสำเร็จแล้ว"}
                         </button>
                         <Link href={`/items/${item.id}/edit`} className="flex-1 md:flex-none">
                           <button className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-2 rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all font-bold text-xs">
@@ -271,9 +248,9 @@ export default function MyItems() {
                       </>
                     )}
                     {/* ถ้า exchanged หรือ removed ให้แสดงข้อความแทนปุ่ม */}
-                    {(item.status === 'exchanged' || item.status === 'removed') && (
+                    {(itemStatus === 'exchanged' || itemStatus === 'removed' || isRejected) && (
                       <div className="flex flex-col gap-2 text-xs text-slate-400 italic px-2 py-1">
-                        {item.status === 'exchanged' ? (
+                        {itemStatus === 'exchanged' ? (
                           <>
                             <span className="text-green-400 font-bold">แลกเปลี่ยนสำเร็จ</span>
                             {/* แสดงชื่อ/อีเมลผู้แลกเปลี่ยน ถ้ามี */}
@@ -288,11 +265,13 @@ export default function MyItems() {
                                   onClick={() => handleLikeExchangedUser(item.id)}
                                   className="not-italic w-fit px-3 py-1.5 rounded-lg text-[11px] font-bold border border-pink-500/40 text-pink-300 hover:bg-pink-500 hover:text-white transition-all"
                                 >
-                                  👍 กดถูกใจผู้ใช้ที่แลกสำเร็จ
+                                  ❤ กดหัวใจให้ผู้ใช้ที่แลกด้วย
                                 </button>
                               )
                             )}
                           </>
+                        ) : isRejected ? (
+                          <span className="text-red-400 font-bold">รายการนี้ถูกแอดมินปฏิเสธ</span>
                         ) : (
                           <span className="text-red-400 font-bold">รายการนี้ถูกลบแล้ว</span>
                         )}
@@ -301,7 +280,7 @@ export default function MyItems() {
                   </div>
                 </div>
               </div>
-            ))
+            )})
           ) : (
             <div className="text-center py-20 bg-white/5 rounded-[40px] border border-dashed border-white/10 italic text-slate-500">
               ไม่มีรายการประกาศในขณะนี้
@@ -310,59 +289,6 @@ export default function MyItems() {
           </div>
       </div>
 
-      {exchangeModalItem && (
-        <div className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg glass-card rounded-3xl border border-white/10 bg-slate-900/90 p-6">
-            <h3 className="text-lg font-black text-amber-400">เลือกผู้ใช้ที่แลกสำเร็จ</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              โพสต์: <span className="text-slate-200 font-semibold">{exchangeModalItem.title}</span>
-            </p>
-
-            <div className="mt-4 space-y-3">
-              <label className="block text-xs text-slate-300 font-semibold">เลือกจากผู้ที่ยื่นคำขอแลก</label>
-              <select
-                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white"
-                value={selectedPartnerEmail}
-                onChange={(e) => setSelectedPartnerEmail(e.target.value)}
-                disabled={loadingPartners}
-              >
-                <option value="">-- เลือกผู้ใช้ --</option>
-                {exchangePartners.map((partner) => (
-                  <option key={partner.requester_email} value={partner.requester_email}>
-                    {(partner.requester_name || "ไม่ระบุชื่อ")} ({partner.requester_email})
-                  </option>
-                ))}
-              </select>
-
-              <div className="text-[11px] text-slate-500">หรือกรอกอีเมลเอง (กรณีไม่ได้ผ่าน flow ยืนยันคำขอแลก)</div>
-              <input
-                type="email"
-                value={manualPartnerEmail}
-                onChange={(e) => setManualPartnerEmail(e.target.value)}
-                placeholder="example@buu.ac.th"
-                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-              />
-            </div>
-
-            <div className="mt-5 flex gap-2 justify-end">
-              <button
-                onClick={() => setExchangeModalItem(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold border border-white/20 text-slate-300 hover:bg-white/10 transition-all"
-                disabled={savingExchange}
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={confirmExchangeWithPartner}
-                className="px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-300 hover:bg-green-500 hover:text-white transition-all"
-                disabled={savingExchange}
-              >
-                {savingExchange ? "กำลังบันทึก..." : "ยืนยันแลกสำเร็จ"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
