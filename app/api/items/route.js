@@ -8,7 +8,9 @@ export async function GET() {
     const connection = await db.getConnection();
     // ดึง id, title, ... ทุก field ที่จำเป็น (ไม่ filter เฉพาะ approved)
     const [rows] = await connection.execute(
-      "SELECT id, title, description, category, wishlist, image_url, owner_email, approval_status, created_at FROM items ORDER BY created_at DESC"
+      `SELECT id, title, description, category, wishlist, image_url, owner_email, approval_status, created_at,
+        status
+      FROM items ORDER BY created_at DESC`
     );
     await connection.release();
     return NextResponse.json(rows);
