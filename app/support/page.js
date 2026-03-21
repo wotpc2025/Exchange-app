@@ -152,7 +152,7 @@ export default function SupportPage() {
           <form onSubmit={sendNewMessage} className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[10px] uppercase tracking-widest font-black px-3 py-1.5 rounded-full border bg-amber-500/10 text-amber-300 border-amber-500/20">
-                NEW ROOM
+                เปิดห้องคำร้องใหม่
               </span>
             </div>
             {error ? (
