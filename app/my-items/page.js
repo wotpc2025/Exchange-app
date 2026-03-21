@@ -123,8 +123,8 @@ export default function MyItems() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                    {/* ส่วนของปุ่มเปลี่ยนสถานะ */}
-                    {item.status !== 'exchanged' && (
+                    {/* ปุ่มเปลี่ยนสถานะ, แก้ไข, ลบ: แสดงเฉพาะถ้าไม่ใช่ exchanged หรือ removed */}
+                    {item.status !== 'exchanged' && item.status !== 'removed' && (
                       <>
                         <button 
                           onClick={() => updateStatus(item.id, item.status === 'available' ? 'pending' : 'available')}
@@ -133,25 +133,38 @@ export default function MyItems() {
                         >
                           {item.status === 'available' ? '⌛ กำลังเจรจา' : '✅ คืนสถานะพร้อมแลก'}
                         </button>
-                        
                         <button 
                           onClick={() => updateStatus(item.id, 'exchanged')}
                           className="flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white transition-all"
                         >
                           🤝 แลกสำเร็จแล้ว
                         </button>
+                        <Link href={`/items/${item.id}/edit`} className="flex-1 md:flex-none">
+                          <button className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-2 rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all font-bold text-xs">
+                            แก้ไข
+                          </button>
+                        </Link>
+                        <button onClick={() => handleDelete(item.id)} className="flex-1 md:flex-none bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-xl hover:bg-red-500 hover:text-white transition-all font-bold text-xs">
+                          ลบ
+                        </button>
                       </>
                     )}
-
-                    <Link href={`/items/${item.id}/edit`} className="flex-1 md:flex-none">
-                      <button className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-2 rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all font-bold text-xs">
-                        แก้ไข
-                      </button>
-                    </Link>
-
-                    <button onClick={() => handleDelete(item.id)} className="flex-1 md:flex-none bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-xl hover:bg-red-500 hover:text-white transition-all font-bold text-xs">
-                      ลบ
-                    </button>
+                    {/* ถ้า exchanged หรือ removed ให้แสดงข้อความแทนปุ่ม */}
+                    {(item.status === 'exchanged' || item.status === 'removed') && (
+                      <div className="text-xs text-slate-400 italic px-2 py-1">
+                        {item.status === 'exchanged' ? (
+                          <>
+                            <span className="text-green-400 font-bold">แลกเปลี่ยนสำเร็จ</span>
+                            {/* แสดงชื่อ/อีเมลผู้แลกเปลี่ยน ถ้ามี */}
+                            {item.exchanged_with_email && (
+                              <span> กับ <span className="text-amber-400">{item.exchanged_with_email}</span></span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-red-400 font-bold">รายการนี้ถูกลบแล้ว</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
