@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { categories } from "@/lib/categories";
 import { useSession, signOut, signIn } from "next-auth/react";
 import Link from "next/link";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function HomePage() {
   const { data: session } = useSession();
@@ -79,6 +80,8 @@ export default function HomePage() {
           <div className="flex items-center gap-4 md:gap-6">
             {session ? (
               <>
+                <NotificationBell />
+
                 {session.user?.role === "student" && (
                   <>
                     <Link href="/my-items" className="relative group">

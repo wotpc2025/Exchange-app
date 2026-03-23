@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db.js";
 import { getAppSession, requireAdmin } from "@/lib/auth.js";
+import { logAdminAction } from "@/lib/admin-audit.js";
+import { createNotificationsForUserIds } from "@/lib/notifications.js";
 
 function computeEndAt(amount, unit) {
   const n = Number(amount);
@@ -67,6 +69,27 @@ export async function POST(req, { params }) {
       "INSERT INTO user_bans (user_id, ban_type, end_at, reason, issued_by_admin_id, active) VALUES (?, ?, ?, ?, ?, 1)",
       [id, banType, endAt, reason, session.user.id || null]
     );
+
+    await createNotificationsForUserIds({
+      userIds: [Number(id)],
+      type: "ban",
+      title: banType === "permanent" ? "บัญชีของคุณถูกแบนถาวร" : "บัญชีของคุณถูกแบนชั่วคราว",
+      body:
+        banType === "permanent"
+          ? reason || "กรุณาติดต่อแอดมินหากต้องการข้อมูลเพิ่มเติม"
+          : `${reason || "กรุณาตรวจสอบกฎการใช้งาน"}${endAt ? ` (สิ้นสุด ${endAt})` : ""}`,
+      link: "/profile",
+      connection,
+    });
+
+    await logAdminAction({
+      adminUserId: session.user.id || null,
+      actionType: "user_banned",
+      targetType: "user",
+      targetId: Number(id),
+      detail: `type=${banType}${endAt ? `,end=${endAt}` : ""}${reason ? `,reason=${String(reason).slice(0, 200)}` : ""}`,
+      connection,
+    });
 
     await connection.release();
     return NextResponse.json({ message: "banned" }, { status: 201 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAppSession } from "@/lib/auth.js";
 import { db } from "@/lib/db.js";
+import { createNotificationsForEmails } from "@/lib/notifications.js";
 
 // GET: ดึงนัดหมายของ request นี้
 export async function GET(req, { params }) {
@@ -101,6 +102,16 @@ export async function POST(req, { params }) {
       [id, session.user.email, location.trim(), new Date(meetTime)]
     );
 
+    const targetEmail = r.owner_email === session.user.email ? r.requester_email : r.owner_email;
+    await createNotificationsForEmails({
+      emails: [targetEmail],
+      type: "meeting",
+      title: "มีการเสนอนัดหมายใหม่",
+      body: `คำขอ #${id}: ${location.trim()} · ${new Date(meetTime).toLocaleString("th-TH")}`,
+      link: `/chat/${id}`,
+      connection,
+    });
+
     await connection.release();
     return NextResponse.json({ id: result.insertId }, { status: 201 });
   } catch (error) {
@@ -152,6 +163,23 @@ export async function PUT(req, { params }) {
       "UPDATE exchange_meetings SET status = ? WHERE id = ? AND request_id = ?",
       [newStatus, meetingId, id]
     );
+
+    const targetEmail = r.owner_email === session.user.email ? r.requester_email : r.owner_email;
+    const statusText =
+      action === "confirm"
+        ? "ยืนยันนัดแล้ว"
+        : action === "cancel"
+          ? "ยกเลิกนัดแล้ว"
+          : "ทำเครื่องหมายว่านัดเสร็จสิ้นแล้ว";
+
+    await createNotificationsForEmails({
+      emails: [targetEmail],
+      type: "meeting",
+      title: "อัปเดตสถานะนัดหมาย",
+      body: `คำขอ #${id}: อีกฝ่าย${statusText}`,
+      link: `/chat/${id}`,
+      connection,
+    });
 
     await connection.release();
     return NextResponse.json({ ok: true });

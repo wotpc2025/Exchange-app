@@ -96,6 +96,30 @@ export default function AdminDashboardPage() {
               </p>
             </div>
           </Link>
+
+          <Link
+            href="/admin/reports"
+            className="glass-card p-6 rounded-3xl border border-white/5 hover:border-amber-500/50 hover:-translate-y-1 transition-all bg-slate-900/60 h-full min-h-[126px] flex flex-col justify-between"
+          >
+            <div>
+              <h2 className="font-bold text-lg mb-2">รายงานผู้ใช้</h2>
+              <p className="text-sm text-slate-400 min-h-[40px] line-clamp-2">
+                ตรวจสอบรายงานผู้ใช้ และออกใบเหลือง/ใบแดงจากเคสเดียวกัน
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/audit-logs"
+            className="glass-card p-6 rounded-3xl border border-white/5 hover:border-amber-500/50 hover:-translate-y-1 transition-all bg-slate-900/60 h-full min-h-[126px] flex flex-col justify-between"
+          >
+            <div>
+              <h2 className="font-bold text-lg mb-2">Audit Logs</h2>
+              <p className="text-sm text-slate-400 min-h-[40px] line-clamp-2">
+                ตรวจสอบประวัติการดำเนินการของแอดมินย้อนหลัง
+              </p>
+            </div>
+          </Link>
         </div>
       </div>
       </div>

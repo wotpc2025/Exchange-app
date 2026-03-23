@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db.js";
 import { getAppSession, requireAdmin } from "@/lib/auth.js";
+import { logAdminAction } from "@/lib/admin-audit.js";
 
 export async function POST(req, { params }) {
   const session = await getAppSession();
@@ -28,6 +29,16 @@ export async function POST(req, { params }) {
        WHERE id = ?`,
       [adminNote || null, session.user.id || null, id]
     );
+
+    await logAdminAction({
+      adminUserId: session.user.id || null,
+      actionType: "complaint_closed",
+      targetType: "item_complaint",
+      targetId: Number(id),
+      detail: adminNote || null,
+      connection,
+    });
+
     await connection.release();
     return NextResponse.json({ ok: true });
   } catch (error) {
