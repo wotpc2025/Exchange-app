@@ -83,14 +83,25 @@ export async function POST(req) {
 
     try {
       for (let i = 0; i < normalizedImages.length; i += 1) {
-        await connection.execute(
-          "INSERT INTO item_images (item_id, image_url, sort_order) VALUES (?, ?, ?)",
-          [result.insertId, normalizedImages[i], i]
-        );
+        try {
+          await connection.execute(
+            "INSERT INTO item_images (item_id, image_url, sort_order) VALUES (?, ?, ?)",
+            [result.insertId, normalizedImages[i], i]
+          );
+        } catch (orderColumnError) {
+          const orderColumnMsg = String(orderColumnError?.message || "");
+          if (!orderColumnMsg.includes("Unknown column")) {
+            throw orderColumnError;
+          }
+          await connection.execute(
+            "INSERT INTO item_images (item_id, image_url, ordering) VALUES (?, ?, ?)",
+            [result.insertId, normalizedImages[i], i]
+          );
+        }
       }
     } catch (insertImageError) {
       const msg = String(insertImageError?.message || "");
-      if (!msg.includes("doesn't exist") && !msg.includes("Unknown table")) {
+      if (!msg.includes("doesn't exist") && !msg.includes("Unknown table") && !msg.includes("Unknown column")) {
         throw insertImageError;
       }
       // Fallback: ถ้ายังไม่สร้างตาราง item_images จะใช้รูปหลักจาก items.image_url อย่างเดียว

@@ -94,7 +94,8 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "message_text or image_data required" }, { status: 400 });
     }
 
-    if (imageData && imageData.length > 8 * 1024 * 1024) {
+    // data URL (base64) is larger than original file size; cap payload to keep DB writes predictable.
+    if (imageData && imageData.length > 12 * 1024 * 1024) {
       return NextResponse.json({ error: "image too large" }, { status: 400 });
     }
 
@@ -128,6 +129,14 @@ export async function POST(req, { params }) {
       );
     } catch (insertError) {
       const msg = String(insertError?.message || "");
+      const code = Number(insertError?.errno || 0);
+      if (imageData && (code === 1406 || msg.includes("Data too long"))) {
+        await connection.release();
+        return NextResponse.json(
+          { error: "Image is too large for DB column image_url. Change messages.image_url to MEDIUMTEXT/LONGTEXT." },
+          { status: 400 }
+        );
+      }
       if (imageData && (msg.includes("Unknown column") || msg.includes("doesn't exist"))) {
         await connection.release();
         return NextResponse.json(

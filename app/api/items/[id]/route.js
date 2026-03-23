@@ -28,13 +28,26 @@ export async function GET(req, { params }) {
 
     let images = [];
     try {
-      const [imageRows] = await connection.execute(
-        "SELECT image_url FROM item_images WHERE item_id = ? ORDER BY sort_order ASC, id ASC",
-        [id]
-      );
-      images = Array.isArray(imageRows)
-        ? imageRows.map((r) => r.image_url).filter(Boolean)
-        : [];
+      let imageRows;
+      try {
+        const [rowsBySort] = await connection.execute(
+          "SELECT image_url FROM item_images WHERE item_id = ? ORDER BY sort_order ASC, id ASC",
+          [id]
+        );
+        imageRows = rowsBySort;
+      } catch (orderColumnError) {
+        const orderColumnMsg = String(orderColumnError?.message || "");
+        if (!orderColumnMsg.includes("Unknown column")) {
+          throw orderColumnError;
+        }
+        const [rowsByOrdering] = await connection.execute(
+          "SELECT image_url FROM item_images WHERE item_id = ? ORDER BY ordering ASC, id ASC",
+          [id]
+        );
+        imageRows = rowsByOrdering;
+      }
+
+      images = Array.isArray(imageRows) ? imageRows.map((r) => r.image_url).filter(Boolean) : [];
     } catch (imageError) {
       const msg = String(imageError?.message || "");
       if (!msg.includes("doesn't exist") && !msg.includes("Unknown table")) {
