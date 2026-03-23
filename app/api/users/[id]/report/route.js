@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
-import { getAppSession } from "@/lib/auth.js";
 import { db } from "@/lib/db.js";
+import { sanitizeText, sanitizeUrl } from "@/lib/security.js";
+import { enforceRateLimit, parseJson, requireSessionOrThrow } from "@/lib/api-guards.js";
 
 // POST: รายงานผู้ใช้
 export async function POST(req, { params }) {
-  const session = await getAppSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireSessionOrThrow();
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
+
+  const limitResponse = enforceRateLimit(req, {
+    scope: "user-report",
+    userKey: session.user.email || "anon",
+    limit: 5,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
 
   const { id } = await params;
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await parseJson(req, {});
 
-  const { reason, evidenceText, evidenceImageUrl } = body || {};
+  const reason = sanitizeText(body?.reason, { maxLen: 700, allowNewlines: true });
+  const evidenceText = sanitizeText(body?.evidenceText, { maxLen: 4000, allowNewlines: true });
+  const evidenceImageUrl = sanitizeUrl(body?.evidenceImageUrl, { maxLen: 1000 });
 
-  if (!reason || String(reason).trim() === "") {
+  if (!reason) {
     return NextResponse.json({ error: "reason is required" }, { status: 400 });
   }
 
@@ -62,9 +69,9 @@ export async function POST(req, { params }) {
       [
         session.user.email,
         id,
-        reason.trim(),
-        evidenceText ? String(evidenceText).trim() : null,
-        evidenceImageUrl ? String(evidenceImageUrl).trim() : null,
+        reason,
+        evidenceText || null,
+        evidenceImageUrl || null,
       ]
     );
 

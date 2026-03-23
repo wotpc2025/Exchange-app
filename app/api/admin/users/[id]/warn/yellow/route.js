@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db.js";
-import { getAppSession, requireAdmin } from "@/lib/auth.js";
 import { logAdminAction } from "@/lib/admin-audit.js";
 import { createNotificationsForUserIds } from "@/lib/notifications.js";
+import { enforceRateLimit, parseJson, requireSessionOrThrow } from "@/lib/api-guards.js";
 
 export async function POST(req, { params }) {
-  const session = await getAppSession();
-  if (!session || !requireAdmin(session)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireSessionOrThrow({ adminOnly: true });
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
+
+  const limitResponse = enforceRateLimit(req, {
+    scope: "admin-warn-yellow",
+    userKey: session.user.email || "admin",
+    limit: 80,
+    windowMs: 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
 
   const { id } = await params;
-  const { reason, reportId } = await req.json().catch(() => ({}));
+  const { reason, reportId } = await parseJson(req, {});
 
   try {
     const connection = await db.getConnection();

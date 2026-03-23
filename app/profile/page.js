@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
@@ -483,10 +484,12 @@ export default function ProfilePage() {
           <Link href="/" className="text-xl font-bold text-gold-gradient">
             BUU Exchange
           </Link>
-
-          <Link href="/" className="text-slate-400 hover:text-white transition-colors">
-            ← กลับหน้าหลัก
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <Link href="/" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้าหลัก
+            </Link>
+          </div>
         </div>
       </nav>
       <main className="px-6 py-12">

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 
 function formatBanLabel(type, endAt) {
   if (!type) return "ไม่แบน";
@@ -130,9 +131,12 @@ export default function AdminUsersPage() {
           <Link href="/" className="text-xl font-bold text-gold-gradient">
             BUU Exchange
           </Link>
-          <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
-            ← กลับหน้า Admin
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้า Admin
+            </Link>
+          </div>
         </div>
       </nav>
 

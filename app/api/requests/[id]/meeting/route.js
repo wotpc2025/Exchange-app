@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getAppSession } from "@/lib/auth.js";
 import { db } from "@/lib/db.js";
 import { createNotificationsForEmails } from "@/lib/notifications.js";
+import { sanitizeText } from "@/lib/security.js";
+import { enforceRateLimit, parseJson, requireSessionOrThrow } from "@/lib/api-guards.js";
 
 // GET: ดึงนัดหมายของ request นี้
 export async function GET(req, { params }) {
-  const session = await getAppSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireSessionOrThrow();
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
 
   const { id } = await params;
 
@@ -49,22 +51,32 @@ export async function GET(req, { params }) {
 
 // POST: เสนอนัดหมายใหม่
 export async function POST(req, { params }) {
-  const session = await getAppSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireSessionOrThrow();
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
+
+  const limitResponse = enforceRateLimit(req, {
+    scope: "meeting-post",
+    userKey: session.user.email || "anon",
+    limit: 8,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
 
   const { id } = await params;
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const body = await parseJson(req, {});
+
+  const location = sanitizeText(body?.location, { maxLen: 300, allowNewlines: false });
+  const meetTime = body?.meetTime;
+  const parsedMeetTime = new Date(meetTime);
+
+  if (!location || !meetTime || Number.isNaN(parsedMeetTime.getTime())) {
+    return NextResponse.json({ error: "location and meetTime are required" }, { status: 400 });
   }
 
-  const { location, meetTime } = body || {};
-
-  if (!location || !meetTime) {
-    return NextResponse.json({ error: "location and meetTime are required" }, { status: 400 });
+  if (parsedMeetTime.getTime() < Date.now() - 60 * 1000) {
+    return NextResponse.json({ error: "meetTime must be in the future" }, { status: 400 });
   }
 
   try {
@@ -99,7 +111,7 @@ export async function POST(req, { params }) {
 
     const [result] = await connection.execute(
       "INSERT INTO exchange_meetings (request_id, proposed_by, location, meet_time, status) VALUES (?, ?, ?, ?, 'proposed')",
-      [id, session.user.email, location.trim(), new Date(meetTime)]
+      [id, session.user.email, location, parsedMeetTime]
     );
 
     const targetEmail = r.owner_email === session.user.email ? r.requester_email : r.owner_email;
@@ -121,17 +133,21 @@ export async function POST(req, { params }) {
 
 // PUT: ยืนยัน / ยกเลิก / ทำเสร็จนัดหมาย
 export async function PUT(req, { params }) {
-  const session = await getAppSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireSessionOrThrow();
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
+
+  const limitResponse = enforceRateLimit(req, {
+    scope: "meeting-put",
+    userKey: session.user.email || "anon",
+    limit: 20,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
 
   const { id } = await params;
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await parseJson(req, {});
 
   const { meetingId, action } = body || {};
   if (!meetingId || !["confirm", "cancel", "done"].includes(action)) {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function MyItems() {
   const { data: session } = useSession();
@@ -204,6 +205,7 @@ export default function MyItems() {
             BUU Exchange
           </Link>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <Link href="/" className="text-slate-400 hover:text-white transition-colors">
               ← กลับหน้าหลัก
             </Link>

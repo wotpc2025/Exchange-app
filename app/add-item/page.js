@@ -4,6 +4,7 @@ import { categories } from "@/lib/categories";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { emitDataChanged } from "@/lib/refresh-bus";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AddItemPage() {
   const { data: session } = useSession();
@@ -98,9 +99,12 @@ export default function AddItemPage() {
           <a href="/" className="text-xl font-bold text-gold-gradient">
             BUU Exchange
           </a>
-          <a href="/" className="text-slate-400 hover:text-white transition-colors">
-            ← กลับหน้าหลัก
-          </a>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <a href="/" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้าหลัก
+            </a>
+          </div>
         </div>
       </nav>
       <div className="max-w-2xl mx-auto glass-card p-8 rounded-[40px] border border-white/5 mt-10">

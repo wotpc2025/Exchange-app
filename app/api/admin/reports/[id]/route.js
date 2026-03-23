@@ -1,18 +1,25 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db.js";
-import { getAppSession, requireAdmin } from "@/lib/auth.js";
 import { logAdminAction } from "@/lib/admin-audit.js";
 import { createNotificationsForEmails, createNotificationsForUserIds } from "@/lib/notifications.js";
+import { enforceRateLimit, parseJson, requireSessionOrThrow } from "@/lib/api-guards.js";
 
 export async function PATCH(req, { params }) {
-  const session = await getAppSession();
-  if (!session || !requireAdmin(session)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await requireSessionOrThrow({ adminOnly: true });
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
+
+  const limitResponse = enforceRateLimit(req, {
+    scope: "admin-report-status",
+    userKey: session.user.email || "admin",
+    limit: 60,
+    windowMs: 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
 
   const { id } = await params;
 
-  const body = await req.json().catch(() => ({}));
+  const body = await parseJson(req, {});
   const nextStatus = String(body?.status || "").toLowerCase();
 
   if (!["open", "reviewed", "closed"].includes(nextStatus)) {

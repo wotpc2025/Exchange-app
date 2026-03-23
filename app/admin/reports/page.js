@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 
 function getSeverity(report) {
   const text = `${report?.reason || ""} ${report?.evidence_text || ""}`.toLowerCase();
@@ -181,6 +182,36 @@ export default function AdminReportsPage() {
     }
   };
 
+  const banPreset = async (report, preset) => {
+    const reason = prompt("เหตุผลแบน (ไม่ใส่ก็ได้):", report?.reason || "") || "";
+    const payload =
+      preset === "permanent"
+        ? { ban_type: "permanent", reason }
+        : {
+            ban_type: "temporary",
+            amount: preset === "7d" ? 7 : 30,
+            unit: "day",
+            reason,
+          };
+
+    setBusyId(report.id);
+    try {
+      const res = await fetch(`/api/admin/users/${report.reported_user_id}/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "แบนไม่สำเร็จ");
+        return;
+      }
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const unbanUser = async (report) => {
     if (!confirm("ยืนยันปลดแบนผู้ใช้รายนี้?")) return;
     setBusyId(report.id);
@@ -214,9 +245,12 @@ export default function AdminReportsPage() {
           <Link href="/" className="text-xl font-bold text-gold-gradient">
             BUU Exchange
           </Link>
-          <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
-            ← กลับหน้า Admin
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้า Admin
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -400,6 +434,32 @@ export default function AdminReportsPage() {
                             </button>
                           ) : null}
                         </div>
+
+                        {!r.reported_active_ban_type ? (
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <button
+                              disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
+                              onClick={() => banPreset(r, "7d")}
+                              className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-500/30 text-purple-200 hover:bg-purple-500 hover:text-white transition-all disabled:opacity-60"
+                            >
+                              แบน 7 วัน
+                            </button>
+                            <button
+                              disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
+                              onClick={() => banPreset(r, "30d")}
+                              className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-500/30 text-purple-200 hover:bg-purple-500 hover:text-white transition-all disabled:opacity-60"
+                            >
+                              แบน 30 วัน
+                            </button>
+                            <button
+                              disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
+                              onClick={() => banPreset(r, "permanent")}
+                              className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-fuchsia-500/30 text-fuchsia-200 hover:bg-fuchsia-500 hover:text-white transition-all disabled:opacity-60"
+                            >
+                              แบนถาวร
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>

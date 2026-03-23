@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAppSession } from "@/lib/auth.js";
 import { db } from "@/lib/db.js";
+import { sanitizeText } from "@/lib/security.js";
+import { enforceRateLimit, parseJson, requireSessionOrThrow } from "@/lib/api-guards.js";
 
 function clampRating(n) {
   const x = Number(n);
@@ -11,23 +12,27 @@ function clampRating(n) {
 }
 
 export async function POST(req, { params }) {
-  const session = await getAppSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireSessionOrThrow();
+  if (!auth.ok) return auth.response;
+  const { session } = auth;
+
+  const limitResponse = enforceRateLimit(req, {
+    scope: "review-post",
+    userKey: session.user.email || "anon",
+    limit: 8,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
 
   const { id } = await params; // request id
   const email = session.user.email;
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await parseJson(req, {});
 
   const punctuality = clampRating(body?.punctuality);
   const accuracy = clampRating(body?.accuracy);
   const politeness = clampRating(body?.politeness);
-  const comment = typeof body?.comment === "string" ? body.comment.trim() : null;
+  const comment = sanitizeText(body?.comment, { maxLen: 1500, allowNewlines: true }) || null;
 
   if (!punctuality || !accuracy || !politeness) {
     return NextResponse.json({ error: "ratings required (1-5)" }, { status: 400 });

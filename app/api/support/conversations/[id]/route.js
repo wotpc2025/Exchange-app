@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db.js";
 import { getAppSession, requireAdmin } from "@/lib/auth.js";
+import { sanitizeText } from "@/lib/security.js";
+import { enforceRateLimit, parseJson } from "@/lib/api-guards.js";
 
 export async function GET(req, { params }) {
   const session = await getAppSession();
@@ -58,12 +60,20 @@ export async function POST(req, { params }) {
   const session = await getAppSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const limitResponse = enforceRateLimit(req, {
+    scope: "support-message",
+    userKey: session.user.email || "anon",
+    limit: 15,
+    windowMs: 60 * 1000,
+  });
+  if (limitResponse) return limitResponse;
+
   const isAdmin = requireAdmin(session);
   const email = session.user.email;
   const { id } = await params;
 
-  const { message_text } = await req.json();
-  const text = (message_text || "").trim();
+  const body = await parseJson(req, {});
+  const text = sanitizeText(body?.message_text, { maxLen: 2000, allowNewlines: true });
   if (!text) return NextResponse.json({ error: "message_text required" }, { status: 400 });
 
   try {

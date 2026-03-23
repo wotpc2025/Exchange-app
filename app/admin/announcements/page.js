@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AdminAnnouncementsPage() {
   const { data: session, status } = useSession();
@@ -58,9 +59,12 @@ export default function AdminAnnouncementsPage() {
           <Link href="/" className="text-xl font-bold text-gold-gradient">
             BUU Exchange
           </Link>
-          <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
-            ← กลับหน้า Admin
-          </Link>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
+              ← กลับหน้า Admin
+            </Link>
+          </div>
         </div>
       </nav>
 

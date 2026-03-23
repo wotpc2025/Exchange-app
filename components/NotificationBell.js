@@ -64,12 +64,21 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-2 w-[360px] max-w-[90vw] rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-md shadow-xl z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <p className="text-sm font-black text-amber-300">การแจ้งเตือน</p>
-            <button
-              onClick={markAllRead}
-              className="text-[10px] uppercase font-black tracking-widest text-slate-300 hover:text-white"
-            >
-              อ่านทั้งหมด
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/notifications"
+                onClick={() => setOpen(false)}
+                className="text-[10px] uppercase font-black tracking-widest text-amber-300 hover:text-amber-200"
+              >
+                ดูทั้งหมด
+              </Link>
+              <button
+                onClick={markAllRead}
+                className="text-[10px] uppercase font-black tracking-widest text-slate-300 hover:text-white"
+              >
+                อ่านทั้งหมด
+              </button>
+            </div>
           </div>
 
           <div className="max-h-96 overflow-y-auto">
