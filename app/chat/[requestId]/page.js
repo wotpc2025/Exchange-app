@@ -14,6 +14,7 @@ export default function ChatRoom({ params }) {
   const [messages, setMessages] = useState([]);
   const [requestInfo, setRequestInfo] = useState(null);
   const [input, setInput] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -145,27 +146,54 @@ export default function ChatRoom({ params }) {
   // 3. ฟังก์ชันส่งข้อความ
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim() || !session) return;
+    if ((!input.trim() && !imagePreview) || !session) return;
 
     const currentInput = input;
+    const currentImage = imagePreview;
     setInput(""); // ล้างช่องพิมพ์ทันที (Optimistic)
+    setImagePreview("");
 
     try {
       const res = await fetch(`/api/chat/${requestId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sender_email: session.user.email,
           message_text: currentInput,
+          image_data: currentImage || null,
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
         fetchData(); // ดึงข้อมูลใหม่เพื่อโชว์ข้อความที่เพิ่งส่ง
+      } else {
+        alert(data.error || "ไม่สามารถส่งข้อความได้");
+        setInput(currentInput);
+        setImagePreview(currentImage);
       }
     } catch (error) {
       alert("ไม่สามารถส่งข้อความได้");
+      setInput(currentInput);
+      setImagePreview(currentImage);
     }
+  };
+
+  const onPickImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("รูปภาพใหญ่เกินไป (จำกัด 5MB)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        setImagePreview(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // 4. ฟังก์ชันตัดสินใจ (Accept/Reject)
@@ -620,7 +648,12 @@ export default function ChatRoom({ params }) {
                 ? 'bg-amber-500 text-slate-950 rounded-tr-none' 
                 : 'bg-slate-800 text-white rounded-tl-none'
               }`}>
-                <p className="text-sm">{msg.message_text}</p>
+                {msg.image_url ? (
+                  <a href={msg.image_url} target="_blank" rel="noreferrer">
+                    <img src={msg.image_url} alt="chat-image" className="rounded-xl max-h-72 object-cover border border-white/20 mb-2" />
+                  </a>
+                ) : null}
+                {msg.message_text ? <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p> : null}
               </div>
               <span className="text-[9px] text-slate-500 mt-1">
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -638,7 +671,25 @@ export default function ChatRoom({ params }) {
       {/* ช่องพิมพ์ข้อความ */}
       <div className="p-4 bg-slate-900 border-t border-white/10">
         {requestInfo?.status === 'pending' ? (
-          <form className="flex gap-2 max-w-4xl mx-auto" onSubmit={sendMessage}>
+          <form className="max-w-4xl mx-auto" onSubmit={sendMessage}>
+            {imagePreview && (
+              <div className="mb-2 relative inline-block">
+                <img src={imagePreview} alt="preview" className="h-24 rounded-xl border border-white/20 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setImagePreview("")}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <label className="bg-slate-800 border-none rounded-2xl px-4 py-3 cursor-pointer hover:bg-slate-700 transition-all">
+                📷
+                <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+              </label>
             <input 
               className="flex-1 bg-slate-800 border-none rounded-2xl px-5 py-3 outline-none focus:ring-2 ring-amber-500/50 transition-all text-sm"
               placeholder="พิมพ์ข้อความเจรจา..."
@@ -648,6 +699,7 @@ export default function ChatRoom({ params }) {
             <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-lg shadow-amber-500/20">
               ส่ง
             </button>
+            </div>
           </form>
         ) : (
           <div className="text-center p-2 text-slate-500 text-sm italic">

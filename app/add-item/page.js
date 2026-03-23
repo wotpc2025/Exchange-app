@@ -18,7 +18,7 @@ export default function AddItemPage() {
     }
   }, [session]);
 
-  const [isPreview, setIsPreview] = useState(null);
+  const [previews, setPreviews] = useState([]);
   const [isFree, setIsFree] = useState(false);
   const [loading, setLoading] = useState(false); // ✅ เพิ่ม loading state กันกดเบิ้ล
 
@@ -27,23 +27,39 @@ export default function AddItemPage() {
     description: "",
     category: categories[0],
     wishlist: "",
-    image_data: ""
+    images_data: []
   });
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // ✅ เช็คขนาดรูป (ไม่ควรเกิน 5MB)
-        alert("รูปภาพขนาดใหญ่เกินไปครับ (จำกัด 5MB)");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setIsPreview(reader.result);
-        setFormData({ ...formData, image_data: reader.result });
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const maxFiles = 8;
+    if (files.length > maxFiles) {
+      alert(`เลือกรูปได้สูงสุด ${maxFiles} รูป`);
+      return;
     }
+
+    const tooLarge = files.find((file) => file.size > 5 * 1024 * 1024);
+    if (tooLarge) {
+      alert("มีรูปภาพขนาดใหญ่เกินไป (จำกัดรูปละ 5MB)");
+      return;
+    }
+
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((results) => {
+      const images = results.filter((v) => typeof v === "string");
+      setPreviews(images);
+      setFormData((prev) => ({ ...prev, images_data: images }));
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -62,6 +78,7 @@ export default function AddItemPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          image_data: formData.images_data?.[0] || "",
           owner_email: session.user.email
         }),
       });
@@ -112,25 +129,42 @@ export default function AddItemPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 1. อัปโหลดรูปภาพ */}
           <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-3xl p-6 bg-slate-900/50 hover:border-amber-500/50 transition-all group">
-            {isPreview ? (
-              <div className="relative w-full flex justify-center">
-                 <img src={isPreview} className="max-h-60 rounded-2xl shadow-2xl object-cover" alt="Preview" />
-                 <button 
+            {previews.length > 0 ? (
+              <div className="w-full">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {previews.map((src, idx) => (
+                    <div key={`preview-${idx}`} className="relative">
+                      <img src={src} className="h-36 w-full rounded-2xl shadow-2xl object-cover" alt={`Preview ${idx + 1}`} />
+                      {idx === 0 && (
+                        <span className="absolute top-2 left-2 text-[10px] font-black px-2 py-1 rounded-full bg-amber-500 text-slate-950">
+                          รูปหลัก
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
                   type="button"
-                  onClick={() => {setIsPreview(null); setFormData({...formData, image_data: ""})}}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full font-bold shadow-lg"
-                 >✕</button>
+                  onClick={() => {
+                    setPreviews([]);
+                    setFormData((prev) => ({ ...prev, images_data: [] }));
+                  }}
+                  className="mt-3 text-xs font-black uppercase tracking-widest text-red-300 hover:text-red-200"
+                >
+                  ล้างรูปทั้งหมด
+                </button>
               </div>
             ) : (
               <div className="text-center">
                 <div className="text-slate-500 text-3xl mb-2">📸</div>
-                <div className="text-slate-400 text-sm mb-4">คลิกเพื่อเลือกรูปภาพสินค้า</div>
+                <div className="text-slate-400 text-sm mb-4">เลือกรูปสินค้าได้หลายรูป (สูงสุด 8 รูป)</div>
               </div>
             )}
             <input 
               type="file" 
               accept="image/*" 
-              required={!isPreview}
+              multiple
+              required={previews.length === 0}
               onChange={handleFileChange} 
               className="text-xs text-slate-400 file:bg-amber-500 file:rounded-full file:border-0 file:px-4 file:py-2 file:font-bold cursor-pointer opacity-70 hover:opacity-100"
             />

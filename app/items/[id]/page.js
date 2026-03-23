@@ -16,6 +16,7 @@ export default function ItemDetail({ params }) {
   const [showComplaint, setShowComplaint] = useState(false);
   const [complaintReason, setComplaintReason] = useState("");
   const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -34,6 +35,26 @@ export default function ItemDetail({ params }) {
     };
     fetchItem();
   }, [id]);
+
+  const itemImages = Array.isArray(item?.images) && item.images.length > 0
+    ? item.images
+    : item?.image_url
+      ? [item.image_url]
+      : [];
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [item?.id]);
+
+  const goPrevImage = () => {
+    if (!itemImages.length) return;
+    setActiveImageIndex((prev) => (prev - 1 + itemImages.length) % itemImages.length);
+  };
+
+  const goNextImage = () => {
+    if (!itemImages.length) return;
+    setActiveImageIndex((prev) => (prev + 1) % itemImages.length);
+  };
 
   // ✅ ฟังก์ชันเริ่มการเจรจา (สร้าง Exchange Request และไปหน้าแชท)
   const startNegotiation = async () => {
@@ -117,8 +138,49 @@ export default function ItemDetail({ params }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* ส่วนโชว์รูปภาพ */}
           <div className="glass-card p-4 rounded-[40px] border border-white/5 bg-slate-900/50">
-            {item.image_url ? (
-              <img src={item.image_url} alt={item.title} className="w-full rounded-[30px] shadow-2xl object-cover" />
+            {itemImages.length > 0 ? (
+              <div>
+                <div className="relative">
+                  <img
+                    src={itemImages[activeImageIndex]}
+                    alt={item.title}
+                    className="w-full rounded-[30px] shadow-2xl object-cover max-h-[520px]"
+                  />
+                  {itemImages.length > 1 && (
+                    <>
+                      <button
+                        onClick={goPrevImage}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 border border-white/20 text-white"
+                      >
+                        ←
+                      </button>
+                      <button
+                        onClick={goNextImage}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 border border-white/20 text-white"
+                      >
+                        →
+                      </button>
+                      <span className="absolute bottom-3 right-3 text-[11px] font-black px-3 py-1 rounded-full bg-black/60 border border-white/20">
+                        {activeImageIndex + 1}/{itemImages.length}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {itemImages.length > 1 && (
+                  <div className="mt-3 grid grid-cols-5 gap-2">
+                    {itemImages.map((src, idx) => (
+                      <button
+                        key={`thumb-${idx}`}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`rounded-xl overflow-hidden border ${idx === activeImageIndex ? "border-amber-400" : "border-white/10"}`}
+                      >
+                        <img src={src} alt={`thumb-${idx}`} className="h-16 w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="aspect-square flex items-center justify-center text-slate-500 italic border border-dashed border-white/10 rounded-[30px]">ไม่มีรูปภาพประกอบ</div>
             )}

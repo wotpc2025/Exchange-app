@@ -88,8 +88,14 @@ export async function POST(req, { params }) {
 
     const body = await parseJson(req, {});
     const messageText = sanitizeText(body?.message_text, { maxLen: 1200, allowNewlines: true });
-    if (!messageText) {
-      return NextResponse.json({ error: "message_text required" }, { status: 400 });
+    const imageData = typeof body?.image_data === "string" ? body.image_data.trim() : "";
+
+    if (!messageText && !imageData) {
+      return NextResponse.json({ error: "message_text or image_data required" }, { status: 400 });
+    }
+
+    if (imageData && imageData.length > 8 * 1024 * 1024) {
+      return NextResponse.json({ error: "image too large" }, { status: 400 });
     }
 
     const connection = await db.getConnection();
@@ -115,10 +121,29 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await connection.execute(
-      "INSERT INTO messages (request_id, sender_email, message_text) VALUES (?, ?, ?)",
-      [requestId, session.user.email, messageText]
-    );
+    try {
+      await connection.execute(
+        "INSERT INTO messages (request_id, sender_email, message_text, image_url) VALUES (?, ?, ?, ?)",
+        [requestId, session.user.email, messageText || null, imageData || null]
+      );
+    } catch (insertError) {
+      const msg = String(insertError?.message || "");
+      if (imageData && (msg.includes("Unknown column") || msg.includes("doesn't exist"))) {
+        await connection.release();
+        return NextResponse.json(
+          { error: "DB schema not ready for image messages. Please run phase3_migrations.sql" },
+          { status: 500 }
+        );
+      }
+      if (msg.includes("Unknown column") || msg.includes("doesn't exist")) {
+        await connection.execute(
+          "INSERT INTO messages (request_id, sender_email, message_text) VALUES (?, ?, ?)",
+          [requestId, session.user.email, messageText || ""]
+        );
+      } else {
+        throw insertError;
+      }
+    }
 
     await connection.release();
     return NextResponse.json({ message: "ส่งข้อความแล้ว" });

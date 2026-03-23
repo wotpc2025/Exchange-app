@@ -19,13 +19,35 @@ export async function GET(req, { params }) {
        WHERE i.id = ?`,
       [id]
     );
-    await connection.release();
-
     if (rows.length === 0) {
+      await connection.release();
       return NextResponse.json({ message: "ไม่พบข้อมูลสินค้า" }, { status: 404 });
     }
 
-    return NextResponse.json(rows[0]);
+    const item = rows[0];
+
+    let images = [];
+    try {
+      const [imageRows] = await connection.execute(
+        "SELECT image_url FROM item_images WHERE item_id = ? ORDER BY sort_order ASC, id ASC",
+        [id]
+      );
+      images = Array.isArray(imageRows)
+        ? imageRows.map((r) => r.image_url).filter(Boolean)
+        : [];
+    } catch (imageError) {
+      const msg = String(imageError?.message || "");
+      if (!msg.includes("doesn't exist") && !msg.includes("Unknown table")) {
+        throw imageError;
+      }
+    }
+
+    if (!images.length && item.image_url) {
+      images = [item.image_url];
+    }
+
+    await connection.release();
+    return NextResponse.json({ ...item, images });
   } catch (error) {
     console.error("API Error:", error);
     return NextResponse.json({ message: "Server Error", error: error.message }, { status: 500 });

@@ -57,6 +57,18 @@ export async function POST(req) {
     // บันทึกโดยใช้ owner จาก session (ไม่เชื่อถือค่า owner_email จาก client)
     const ownerEmail = session.user.email;
 
+    const rawImages = Array.isArray(data.images_data) ? data.images_data : [];
+    const normalizedImages = rawImages
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter((v) => v !== "")
+      .slice(0, 8);
+    const primaryImage = normalizedImages[0] || data.image_data || null;
+
+    if (!primaryImage) {
+      await connection.release();
+      return NextResponse.json({ error: "At least one image is required" }, { status: 400 });
+    }
+
     const [result] = await connection.execute(
       "INSERT INTO items (title, description, category, wishlist, image_url, owner_email, approval_status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
       [
@@ -64,10 +76,25 @@ export async function POST(req) {
         data.description,
         data.category,
         data.wishlist,
-        data.image_data,
+        primaryImage,
         ownerEmail,
       ]
     );
+
+    try {
+      for (let i = 0; i < normalizedImages.length; i += 1) {
+        await connection.execute(
+          "INSERT INTO item_images (item_id, image_url, sort_order) VALUES (?, ?, ?)",
+          [result.insertId, normalizedImages[i], i]
+        );
+      }
+    } catch (insertImageError) {
+      const msg = String(insertImageError?.message || "");
+      if (!msg.includes("doesn't exist") && !msg.includes("Unknown table")) {
+        throw insertImageError;
+      }
+      // Fallback: ถ้ายังไม่สร้างตาราง item_images จะใช้รูปหลักจาก items.image_url อย่างเดียว
+    }
 
     await connection.release();
 
