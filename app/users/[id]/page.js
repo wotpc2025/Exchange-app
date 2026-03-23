@@ -16,6 +16,49 @@ export default function PublicUserProfilePage() {
   const [error, setError] = useState(null);
   const [warningDetailType, setWarningDetailType] = useState(null);
 
+  // รีวิว
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
+
+  // รายงานผู้ใช้
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportForm, setReportForm] = useState({ reason: "", evidenceText: "" });
+
+  const loadReviews = async () => {
+    if (reviewsLoaded) { setShowReviews(true); return; }
+    try {
+      const res = await fetch(`/api/users/${userId}/reviews`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+        setReviewsLoaded(true);
+        setShowReviews(true);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const submitReport = async (e) => {
+    e.preventDefault();
+    if (!reportForm.reason.trim()) return;
+    setReportBusy(true);
+    try {
+      const res = await fetch(`/api/users/${userId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || "รายงานไม่สำเร็จ"); return; }
+      alert("ส่งรายงานเรียบร้อยแล้ว ทีมแอดมินจะตรวจสอบโดยเร็ว");
+      setReportOpen(false);
+      setReportForm({ reason: "", evidenceText: "" });
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (!userId) return;
     if (status === "loading") return;
@@ -132,7 +175,82 @@ export default function PublicUserProfilePage() {
         </div>
       </nav>
 
-      <main className="px-6 py-12">{content}</main>
+      <main className="px-6 py-12">
+        {content}
+
+        {/* ===== ปุ่มรายงานผู้ใช้ + ดูรีวิว (แสดงเมื่อ login และไม่ใช่โปรไฟล์ตัวเอง) ===== */}
+        {session && String(session.user?.id) !== String(userId) && !isAdmin && (
+          <div className="max-w-5xl mx-auto mt-8 flex flex-wrap gap-3">
+            <button
+              onClick={() => { setShowReviews((v) => !v); if (!reviewsLoaded) loadReviews(); }}
+              className="text-xs font-black px-5 py-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 uppercase tracking-widest transition-colors"
+            >
+              ⭐ ดูรีวิวที่ได้รับ ({reviews.length > 0 ? reviews.length : "..."})
+            </button>
+            <button
+              onClick={() => setReportOpen(true)}
+              className="text-xs font-black px-5 py-2.5 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 uppercase tracking-widest transition-colors"
+            >
+              🚩 รายงานผู้ใช้นี้
+            </button>
+          </div>
+        )}
+
+        {/* รีวิวที่ได้รับ */}
+        {showReviews && !isAdmin && (
+          <div className="max-w-5xl mx-auto mt-4">
+            <ReviewListSection reviews={reviews} reviewsLoaded={reviewsLoaded} />
+          </div>
+        )}
+      </main>
+
+      {/* Modal รายงานผู้ใช้ */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="glass-card w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/80 backdrop-blur-md p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-base font-black text-red-400">🚩 รายงานผู้ใช้</h3>
+                <p className="text-xs text-slate-400 mt-1">ทีมแอดมินจะตรวจสอบภายใน 24 ชั่วโมง</p>
+              </div>
+              <button onClick={() => setReportOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={submitReport} className="space-y-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">เหตุผลในการรายงาน *</label>
+                <textarea
+                  value={reportForm.reason}
+                  onChange={(e) => setReportForm((v) => ({ ...v, reason: e.target.value }))}
+                  rows={3}
+                  required
+                  placeholder="อธิบายพฤติกรรมที่มีปัญหา..."
+                  className="w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-red-500/50 text-sm resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">หลักฐานเพิ่มเติม (ไม่บังคับ)</label>
+                <textarea
+                  value={reportForm.evidenceText}
+                  onChange={(e) => setReportForm((v) => ({ ...v, evidenceText: e.target.value }))}
+                  rows={2}
+                  placeholder="อธิบายหลักฐาน, ลิงก์รูปภาพ ฯลฯ"
+                  className="w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-red-500/50 text-sm resize-none"
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setReportOpen(false)}
+                  className="px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border border-white/10 text-slate-300 hover:bg-white/5">
+                  ยกเลิก
+                </button>
+                <button type="submit" disabled={reportBusy}
+                  className="px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-widest bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-60">
+                  {reportBusy ? "กำลังส่ง..." : "ส่งรายงาน"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -517,3 +635,77 @@ function WarningHistoryCard({ stats, warningHistory, openType, onToggleType }) {
   );
 }
 
+function StarDisplay({ score, max = 5 }) {
+  return (
+    <span className="inline-flex gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <span key={i} className={i < Math.round(score) ? "text-amber-400" : "text-slate-600"}>★</span>
+      ))}
+    </span>
+  );
+}
+
+function ReviewListSection({ reviews, reviewsLoaded }) {
+  if (!reviewsLoaded) {
+    return (
+      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-slate-900/60 text-slate-400 text-sm italic text-center">
+        กำลังโหลดรีวิว...
+      </div>
+    );
+  }
+
+  const avgOverall = reviews.length > 0
+    ? (reviews.reduce((s, r) => s + Number(r.avg_score || 0), 0) / reviews.length).toFixed(1)
+    : null;
+
+  return (
+    <div className="glass-card p-6 rounded-[30px] border border-white/5 bg-slate-900/50">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-black text-emerald-300">⭐ รีวิวที่ได้รับ</h2>
+        {avgOverall && (
+          <div className="flex items-center gap-2">
+            <StarDisplay score={Number(avgOverall)} />
+            <span className="text-sm font-black text-amber-400">{avgOverall}</span>
+            <span className="text-xs text-slate-500">({reviews.length} รีวิว)</span>
+          </div>
+        )}
+      </div>
+
+      {reviews.length === 0 ? (
+        <p className="text-slate-500 text-sm italic">ยังไม่มีรีวิว</p>
+      ) : (
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+          {reviews.map((r) => (
+            <div key={r.id} className="rounded-2xl border border-white/5 bg-slate-950/60 px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={r.reviewer_image || `https://ui-avatars.com/api/?background=0f172a&color=fbbf24&name=${encodeURIComponent(r.reviewer_name || "?")}`}
+                    className="w-7 h-7 rounded-full border border-white/10 object-cover"
+                    alt={r.reviewer_name}
+                  />
+                  <span className="text-sm font-semibold text-slate-200">{r.reviewer_name || "ผู้ใช้"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <StarDisplay score={Number(r.avg_score)} />
+                  <span className="text-xs text-amber-400 font-black">{r.avg_score}</span>
+                  <span className="text-[10px] text-slate-500 ml-1">
+                    {formatThaiDate(r.created_at)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-4 mt-2 text-[10px] text-slate-400">
+                <span>⏰ {r.punctuality}/5</span>
+                <span>📦 {r.accuracy}/5</span>
+                <span>🤝 {r.politeness}/5</span>
+              </div>
+              {r.comment && (
+                <p className="mt-2 text-xs text-slate-300 italic">"{r.comment}"</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

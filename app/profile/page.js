@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [warningDetailType, setWarningDetailType] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -36,7 +38,19 @@ export default function ProfilePage() {
       }
     };
 
+    const loadReviews = async () => {
+      try {
+        const res = await fetch("/api/user/reviews");
+        if (res.ok) {
+          const data = await res.json();
+          setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+          setReviewsLoaded(true);
+        }
+      } catch { /* ignore */ }
+    };
+
     load();
+    loadReviews();
   }, [status]);
 
   const isAdmin = session?.user?.role === "admin";
@@ -454,6 +468,9 @@ export default function ProfilePage() {
             ))
           )}
         </div>
+
+        <h2 className="text-lg font-bold mt-10 mb-4">รีวิวที่ฉันได้รับ</h2>
+        <MyReviewsSection reviews={reviews} reviewsLoaded={reviewsLoaded} />
       </div>
     );
   };
@@ -720,6 +737,78 @@ function AdminContactForm({
       >
         บันทึกช่องทางติดต่อ
       </button>
+    </div>
+  );
+}
+
+function StarDisplay({ score, max = 5 }) {
+  return (
+    <span className="inline-flex gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <span key={i} className={i < Math.round(score) ? "text-amber-400" : "text-slate-600"}>★</span>
+      ))}
+    </span>
+  );
+}
+
+function MyReviewsSection({ reviews, reviewsLoaded }) {
+  if (!reviewsLoaded) {
+    return (
+      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-slate-900/60 text-slate-400 text-sm italic text-center">
+        กำลังโหลดรีวิว...
+      </div>
+    );
+  }
+
+  const avgOverall = reviews.length > 0
+    ? (reviews.reduce((s, r) => s + Number(r.avg_score || 0), 0) / reviews.length).toFixed(1)
+    : null;
+
+  return (
+    <div className="glass-card p-6 rounded-[30px] border border-white/5 bg-slate-900/50">
+      {avgOverall && (
+        <div className="flex items-center gap-2 mb-4">
+          <StarDisplay score={Number(avgOverall)} />
+          <span className="text-sm font-black text-amber-400">{avgOverall}</span>
+          <span className="text-xs text-slate-500">({reviews.length} รีวิว)</span>
+        </div>
+      )}
+
+      {reviews.length === 0 ? (
+        <p className="text-slate-500 text-sm italic">ยังไม่มีรีวิวที่ได้รับ</p>
+      ) : (
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+          {reviews.map((r) => (
+            <div key={r.id} className="rounded-2xl border border-white/5 bg-slate-950/60 px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={r.reviewer_image || `https://ui-avatars.com/api/?background=0f172a&color=fbbf24&name=${encodeURIComponent(r.reviewer_name || "?")}`}
+                    className="w-7 h-7 rounded-full border border-white/10 object-cover"
+                    alt={r.reviewer_name}
+                  />
+                  <span className="text-sm font-semibold text-slate-200">{r.reviewer_name || "ผู้ใช้"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <StarDisplay score={Number(r.avg_score)} />
+                  <span className="text-xs text-amber-400 font-black">{r.avg_score}</span>
+                  <span className="text-[10px] text-slate-500 ml-1">
+                    {formatThaiDate(r.created_at)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-4 mt-2 text-[10px] text-slate-400">
+                <span>⏰ {r.punctuality}/5</span>
+                <span>📦 {r.accuracy}/5</span>
+                <span>🤝 {r.politeness}/5</span>
+              </div>
+              {r.comment && (
+                <p className="mt-2 text-xs text-slate-300 italic">"{r.comment}"</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

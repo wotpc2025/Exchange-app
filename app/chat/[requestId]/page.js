@@ -26,6 +26,12 @@ export default function ChatRoom({ params }) {
     comment: "",
   });
 
+  // --- นัดหมาย ---
+  const [meeting, setMeeting] = useState(null);
+  const [meetingOpen, setMeetingOpen] = useState(false);
+  const [meetingBusy, setMeetingBusy] = useState(false);
+  const [meetingForm, setMeetingForm] = useState({ location: "", meetTime: "" });
+
   const getThaiRequestStatus = (rawStatus) => {
     const status = String(rawStatus || "").toLowerCase();
     if (status === "pending") return "รอการตอบรับ";
@@ -69,14 +75,68 @@ export default function ChatRoom({ params }) {
     }
   };
 
+  const fetchMeeting = async () => {
+    try {
+      const res = await fetch(`/api/requests/${requestId}/meeting`);
+      if (res.ok) {
+        const data = await res.json();
+        setMeeting(data.meeting || null);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const proposeMeeting = async (e) => {
+    e.preventDefault();
+    if (!meetingForm.location.trim() || !meetingForm.meetTime) return;
+    setMeetingBusy(true);
+    try {
+      const res = await fetch(`/api/requests/${requestId}/meeting`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: meetingForm.location,
+          meetTime: meetingForm.meetTime,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || "เสนอนัดไม่สำเร็จ"); return; }
+      setMeetingOpen(false);
+      setMeetingForm({ location: "", meetTime: "" });
+      fetchMeeting();
+    } finally {
+      setMeetingBusy(false);
+    }
+  };
+
+  const updateMeeting = async (action) => {
+    if (!meeting) return;
+    setMeetingBusy(true);
+    try {
+      const res = await fetch(`/api/requests/${requestId}/meeting`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meetingId: meeting.id, action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || "อัปเดตนัดไม่สำเร็จ"); return; }
+      fetchMeeting();
+    } finally {
+      setMeetingBusy(false);
+    }
+  };
+
   // 2. Setup Real-time (Polling ทุก 3 วินาที)
   useEffect(() => {
     if (!requestId) return;
     
     fetchData(); // ดึงครั้งแรกทันที
+    fetchMeeting();
 
     const interval = setInterval(() => {
       fetchData();
+      fetchMeeting();
     }, 3000); // ดึงใหม่ทุก 3 วินาที
 
     return () => clearInterval(interval); // เคลียร์เมื่อปิดหน้าจอ
@@ -368,55 +428,31 @@ export default function ChatRoom({ params }) {
             </div>
 
             <form onSubmit={submitReview} className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <label className="text-xs text-slate-300">
-                  ตรงต่อเวลา
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={reviewForm.punctuality}
-                    onChange={(e) =>
-                      setReviewForm((v) => ({
-                        ...v,
-                        punctuality: Number(e.target.value || 5),
-                      }))
-                    }
-                    className="mt-1 w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-emerald-400/50 transition-all text-sm"
-                  />
-                </label>
-                <label className="text-xs text-slate-300">
-                  ตรงปก
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={reviewForm.accuracy}
-                    onChange={(e) =>
-                      setReviewForm((v) => ({
-                        ...v,
-                        accuracy: Number(e.target.value || 5),
-                      }))
-                    }
-                    className="mt-1 w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-emerald-400/50 transition-all text-sm"
-                  />
-                </label>
-                <label className="text-xs text-slate-300">
-                  มารยาท
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={reviewForm.politeness}
-                    onChange={(e) =>
-                      setReviewForm((v) => ({
-                        ...v,
-                        politeness: Number(e.target.value || 5),
-                      }))
-                    }
-                    className="mt-1 w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-emerald-400/50 transition-all text-sm"
-                  />
-                </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { key: "punctuality", label: "⏰ ตรงต่อเวลา" },
+                  { key: "accuracy",   label: "📦 ตรงปก" },
+                  { key: "politeness", label: "🤝 มารยาท" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <p className="text-xs text-slate-400 mb-2">{label}</p>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewForm((v) => ({ ...v, [key]: star }))}
+                          className={`text-2xl transition-transform hover:scale-110 ${
+                            reviewForm[key] >= star ? "text-amber-400" : "text-slate-600"
+                          }`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">{reviewForm[key]}/5</p>
+                  </div>
+                ))}
               </div>
 
               <textarea
@@ -442,6 +478,129 @@ export default function ChatRoom({ params }) {
                   className="px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 disabled:opacity-60 transition-all"
                 >
                   {reviewBusy ? "กำลังส่ง..." : "ส่งรีวิว"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ส่วนนัดหมาย ===== */}
+      {(requestInfo?.status === "accepted" || requestInfo?.status === "pending") && (
+        <div className="px-4 py-3 border-b border-white/10 bg-slate-900/40">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📍</span>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-amber-400">นัดหมายแลกของ</p>
+                {meeting ? (
+                  <div className="text-xs text-slate-300 mt-0.5">
+                    <span className={`mr-2 px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                      meeting.status === "confirmed" ? "bg-green-500/10 text-green-300 border-green-500/30" :
+                      meeting.status === "done"      ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" :
+                      meeting.status === "cancelled" ? "bg-red-500/10 text-red-300 border-red-500/30" :
+                      "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                    }`}>
+                      {meeting.status === "proposed" ? "รอยืนยัน" :
+                       meeting.status === "confirmed" ? "ยืนยันแล้ว" :
+                       meeting.status === "done"      ? "เสร็จสิ้น" : "ยกเลิก"}
+                    </span>
+                    <span className="text-slate-400">{meeting.location}</span>
+                    <span className="text-slate-500 ml-2">
+                      {new Date(meeting.meet_time).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}
+                    </span>
+                    <span className="text-slate-600 ml-2">
+                      (เสนอโดย {meeting.proposed_by_name || meeting.proposed_by})
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">ยังไม่มีนัดหมาย</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 shrink-0">
+              {/* อีกฝ่ายที่ไม่ได้เสนอ สามารถยืนยันได้ตอน proposed */}
+              {meeting?.status === "proposed" && meeting.proposed_by !== session?.user?.email && (
+                <button
+                  onClick={() => updateMeeting("confirm")}
+                  disabled={meetingBusy}
+                  className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-green-500/10 text-green-300 border border-green-500/30 hover:bg-green-500/20 disabled:opacity-60"
+                >
+                  ยืนยันนัด
+                </button>
+              )}
+              {meeting?.status === "confirmed" && (
+                <button
+                  onClick={() => updateMeeting("done")}
+                  disabled={meetingBusy}
+                  className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 disabled:opacity-60"
+                >
+                  ✓ พบกันแล้ว
+                </button>
+              )}
+              {meeting?.status === "proposed" && (
+                <button
+                  onClick={() => updateMeeting("cancel")}
+                  disabled={meetingBusy}
+                  className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20 disabled:opacity-60"
+                >
+                  ยกเลิก
+                </button>
+              )}
+              <button
+                onClick={() => setMeetingOpen(true)}
+                className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20"
+              >
+                {meeting ? "เสนอนัดใหม่" : "+ นัดหมาย"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal เสนอนัดหมาย */}
+      {meetingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="glass-card w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/80 backdrop-blur-md p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-base font-black text-amber-300">📍 เสนอนัดหมายแลกของ</h3>
+                <p className="text-xs text-slate-400 mt-1">กำหนดสถานที่และเวลาที่สะดวก</p>
+              </div>
+              <button onClick={() => setMeetingOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={proposeMeeting} className="space-y-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">สถานที่นัดพบ</label>
+                <input
+                  type="text"
+                  placeholder="เช่น หน้า OP10, ใต้ตึก IT, ฯลฯ"
+                  value={meetingForm.location}
+                  onChange={(e) => setMeetingForm((v) => ({ ...v, location: e.target.value }))}
+                  required
+                  className="w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-amber-500/50 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">วันและเวลา</label>
+                <input
+                  type="datetime-local"
+                  value={meetingForm.meetTime}
+                  onChange={(e) => setMeetingForm((v) => ({ ...v, meetTime: e.target.value }))}
+                  required
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-amber-500/50 text-sm"
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setMeetingOpen(false)}
+                  className="px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border border-white/10 text-slate-300 hover:bg-white/5">
+                  ยกเลิก
+                </button>
+                <button type="submit" disabled={meetingBusy}
+                  className="px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-widest bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-60">
+                  {meetingBusy ? "กำลังส่ง..." : "เสนอนัด"}
                 </button>
               </div>
             </form>

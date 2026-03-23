@@ -1,0 +1,161 @@
+import { NextResponse } from "next/server";
+import { getAppSession } from "@/lib/auth.js";
+import { db } from "@/lib/db.js";
+
+// GET: ดึงนัดหมายของ request นี้
+export async function GET(req, { params }) {
+  const session = await getAppSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+
+  try {
+    const connection = await db.getConnection();
+
+    // ตรวจสอบว่า user เป็นส่วนหนึ่งของ request นี้
+    const [reqRows] = await connection.execute(
+      "SELECT owner_email, requester_email FROM exchange_requests WHERE id = ? LIMIT 1",
+      [id]
+    );
+
+    if (reqRows.length === 0) {
+      await connection.release();
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const r = reqRows[0];
+    if (r.owner_email !== session.user.email && r.requester_email !== session.user.email) {
+      await connection.release();
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const [meetingRows] = await connection.execute(
+      `SELECT m.*, u.name AS proposed_by_name
+       FROM exchange_meetings m
+       JOIN users u ON u.email = m.proposed_by
+       WHERE m.request_id = ?
+       ORDER BY m.created_at DESC
+       LIMIT 1`,
+      [id]
+    );
+
+    await connection.release();
+    return NextResponse.json({ meeting: meetingRows[0] || null });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// POST: เสนอนัดหมายใหม่
+export async function POST(req, { params }) {
+  const session = await getAppSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { location, meetTime } = body || {};
+
+  if (!location || !meetTime) {
+    return NextResponse.json({ error: "location and meetTime are required" }, { status: 400 });
+  }
+
+  try {
+    const connection = await db.getConnection();
+
+    const [reqRows] = await connection.execute(
+      "SELECT owner_email, requester_email, status FROM exchange_requests WHERE id = ? LIMIT 1",
+      [id]
+    );
+
+    if (reqRows.length === 0) {
+      await connection.release();
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const r = reqRows[0];
+    if (r.owner_email !== session.user.email && r.requester_email !== session.user.email) {
+      await connection.release();
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (r.status !== "accepted" && r.status !== "pending") {
+      await connection.release();
+      return NextResponse.json({ error: "Cannot propose meeting at this stage" }, { status: 400 });
+    }
+
+    // ยกเลิกนัดเดิมที่ยังไม่ได้รับการยืนยัน
+    await connection.execute(
+      "UPDATE exchange_meetings SET status = 'cancelled' WHERE request_id = ? AND status = 'proposed'",
+      [id]
+    );
+
+    const [result] = await connection.execute(
+      "INSERT INTO exchange_meetings (request_id, proposed_by, location, meet_time, status) VALUES (?, ?, ?, ?, 'proposed')",
+      [id, session.user.email, location.trim(), new Date(meetTime)]
+    );
+
+    await connection.release();
+    return NextResponse.json({ id: result.insertId }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PUT: ยืนยัน / ยกเลิก / ทำเสร็จนัดหมาย
+export async function PUT(req, { params }) {
+  const session = await getAppSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { meetingId, action } = body || {};
+  if (!meetingId || !["confirm", "cancel", "done"].includes(action)) {
+    return NextResponse.json({ error: "meetingId and valid action required" }, { status: 400 });
+  }
+
+  try {
+    const connection = await db.getConnection();
+
+    const [reqRows] = await connection.execute(
+      "SELECT owner_email, requester_email FROM exchange_requests WHERE id = ? LIMIT 1",
+      [id]
+    );
+
+    if (reqRows.length === 0) {
+      await connection.release();
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const r = reqRows[0];
+    if (r.owner_email !== session.user.email && r.requester_email !== session.user.email) {
+      await connection.release();
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const newStatus = action === "confirm" ? "confirmed" : action === "cancel" ? "cancelled" : "done";
+
+    await connection.execute(
+      "UPDATE exchange_meetings SET status = ? WHERE id = ? AND request_id = ?",
+      [newStatus, meetingId, id]
+    );
+
+    await connection.release();
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

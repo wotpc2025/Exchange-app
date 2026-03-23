@@ -109,7 +109,7 @@ export default function HomePage() {
                 <Link href="/profile" className="relative group">
                   <div className="bg-slate-800/80 p-3 rounded-2xl border border-white/5 group-hover:border-amber-500/50 transition-all flex flex-col items-start justify-center">
                     <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest leading-tight">
-                      {session.user.role === "admin" ? "Admin" : "Student"}
+                      {session.user.role === "admin" ? "แอดมิน" : "นักศึกษา"}
                     </p>
                     <p className="text-sm text-slate-200 font-medium">
                       {session.user.name}
