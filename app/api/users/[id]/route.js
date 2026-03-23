@@ -45,6 +45,14 @@ export async function GET(req, { params }) {
       [dbUser.id]
     );
 
+    const [warningHistoryRows] = await connection.execute(
+      `SELECT id, type, reason, created_at
+       FROM user_warnings
+       WHERE user_id = ?
+       ORDER BY created_at DESC, id DESC`,
+      [dbUser.id]
+    );
+
     let yellowCount = 0;
     let redCount = 0;
     for (const row of warningRows) {
@@ -103,6 +111,12 @@ export async function GET(req, { params }) {
           red: redCount,
         },
       },
+      warningHistory: warningHistoryRows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        reason: row.reason,
+        createdAt: row.created_at,
+      })),
       items,
     });
   } catch (error) {

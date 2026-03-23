@@ -14,6 +14,7 @@ export default function PublicUserProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [warningDetailType, setWarningDetailType] = useState(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -67,6 +68,9 @@ export default function PublicUserProfilePage() {
   }
 
   const { user, stats } = profile;
+  const warningHistory = Array.isArray(profile.warningHistory)
+    ? profile.warningHistory
+    : [];
   const isAdmin = user.role === "admin";
   const isOnline = status === "authenticated" && String(session?.user?.id) === String(user.id);
 
@@ -99,7 +103,17 @@ export default function PublicUserProfilePage() {
   const content = isAdmin ? (
     <AdminView user={user} stats={stats} avatarImage={avatarImage} fallbackImage={fallbackImage} onlineBadge={onlineBadge} />
   ) : (
-    <StudentView user={user} stats={stats} avatarImage={avatarImage} fallbackImage={fallbackImage} onlineBadge={onlineBadge} exchangedItems={exchangedItems} />
+    <StudentView
+      user={user}
+      stats={stats}
+      avatarImage={avatarImage}
+      fallbackImage={fallbackImage}
+      onlineBadge={onlineBadge}
+      exchangedItems={exchangedItems}
+      warningHistory={warningHistory}
+      openType={warningDetailType}
+      onToggleType={setWarningDetailType}
+    />
   );
 
   return (
@@ -253,6 +267,9 @@ function StudentView({
   fallbackImage,
   onlineBadge,
   exchangedItems,
+  warningHistory,
+  openType,
+  onToggleType,
 }) {
   const trustScore = user.trustScore ?? 0;
   const hearts = Array.from({ length: Math.min(trustScore, 5) });
@@ -360,24 +377,12 @@ function StudentView({
             </div>
           </div>
 
-          <div className="glass-card p-4 rounded-2xl border border-white/5 bg-slate-900/70 flex flex-col md:flex-row items-center md:items-start md:justify-between gap-4">
-            <div>
-              <p className="text-[11px] uppercase tracking-widest text-slate-400">
-                ประวัติใบเหลือง / ใบแดง
-              </p>
-              <p className="text-sm text-slate-300">
-                สถิติวินัยจากทีมแอดมิน
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest bg-yellow-500/10 text-yellow-300 border-yellow-500/30">
-                ใบเหลือง: {stats?.warnings?.yellow ?? 0}
-              </span>
-              <span className="text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest bg-red-500/10 text-red-300 border-red-500/30">
-                ใบแดง: {stats?.warnings?.red ?? 0}
-              </span>
-            </div>
-          </div>
+          <WarningHistoryCard
+            stats={stats}
+            warningHistory={warningHistory}
+            openType={openType}
+            onToggleType={onToggleType}
+          />
         </div>
       </div>
 
@@ -410,6 +415,104 @@ function StudentView({
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function formatThaiDate(dateValue) {
+  if (!dateValue) {
+    return "-";
+  }
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function WarningHistoryCard({ stats, warningHistory, openType, onToggleType }) {
+  const selectedType = openType === "yellow" || openType === "red" ? openType : null;
+  const selectedWarnings = selectedType
+    ? warningHistory.filter((entry) => entry.type === selectedType)
+    : [];
+  const warningTitle = selectedType === "yellow" ? "ใบเหลือง" : "ใบแดง";
+  const warningAccent = selectedType === "yellow" ? "text-yellow-300" : "text-red-300";
+
+  return (
+    <div className="glass-card p-4 rounded-2xl border border-white/5 bg-slate-900/70 flex flex-col gap-4">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-slate-400">
+            ประวัติใบเหลือง / ใบแดง
+          </p>
+          <p className="text-sm text-slate-300">
+            กดที่ป้ายเพื่อดูว่าโดนข้อหาอะไร และวันที่ได้รับใบเตือน
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => onToggleType((prev) => (prev === "yellow" ? null : "yellow"))}
+            className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest transition-colors ${
+              openType === "yellow"
+                ? "bg-yellow-400/20 text-yellow-200 border-yellow-400/60"
+                : "bg-yellow-500/10 text-yellow-300 border-yellow-500/30 hover:bg-yellow-500/20"
+            }`}
+          >
+            ใบเหลือง: {stats?.warnings?.yellow ?? 0}
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleType((prev) => (prev === "red" ? null : "red"))}
+            className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest transition-colors ${
+              openType === "red"
+                ? "bg-red-400/20 text-red-200 border-red-400/60"
+                : "bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20"
+            }`}
+          >
+            ใบแดง: {stats?.warnings?.red ?? 0}
+          </button>
+        </div>
+      </div>
+
+      {selectedType && (
+        <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-3">
+          <p className={`text-xs font-bold ${warningAccent}`}>
+            รายละเอียด {warningTitle} (รวม {selectedWarnings.length} ใบ)
+          </p>
+
+          {selectedWarnings.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-400 italic">
+              ยังไม่มีประวัติ {warningTitle.toLowerCase()}
+            </p>
+          ) : (
+            <div className="mt-2 space-y-2 max-h-56 overflow-y-auto pr-1">
+              {selectedWarnings.map((entry, idx) => (
+                <div
+                  key={entry.id || `${entry.type}-${idx}`}
+                  className="rounded-xl border border-white/5 bg-slate-900/60 px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="text-slate-200 font-semibold">ใบที่ {selectedWarnings.length - idx}</span>
+                    <span className="text-slate-400">{formatThaiDate(entry.createdAt)}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-300">
+                    ข้อหา: {entry.reason && String(entry.reason).trim() !== "" ? entry.reason : "ไม่ระบุ"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
