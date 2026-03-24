@@ -6,7 +6,7 @@ services:
     container_name: exchange-app-prod
     restart: unless-stopped
     ports:
-      - "3022:3000"
+      - "3001:3000"
     environment:
       # App Config
       - NODE_ENV=production
