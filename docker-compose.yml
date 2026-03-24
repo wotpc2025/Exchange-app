@@ -6,8 +6,19 @@ services:
     container_name: exchange-app-prod
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3022:3000"
     environment:
+      # Next Auth
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+
+      # Google API
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+
+      # Database Auth
+      - DATABASE_URL=${DATABASE_URL}
+
       # App Config
       - NODE_ENV=production
     env_file:
