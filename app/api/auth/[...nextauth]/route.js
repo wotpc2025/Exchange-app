@@ -13,21 +13,22 @@ export const authOptions = {
   callbacks: {
     async signIn({ profile }) {
       // ตรวจสอบว่าต้องเป็น @go.buu.ac.th เท่านั้น
-      if (!profile.email.endsWith("@go.buu.ac.th")) {
+      const email = profile?.email;
+      if (!email || !email.endsWith("@go.buu.ac.th")) {
         return false;
       }
 
       try {
         const [rows] = await db.execute(
           "SELECT id, role, name, image FROM users WHERE email = ?",
-          [profile.email]
+          [email]
         );
 
         let userId;
         if (rows.length === 0) {
           const [created] = await db.execute(
             "INSERT INTO users (email, name, image) VALUES (?, ?, ?)",
-            [profile.email, profile.name, profile.picture]
+            [email, profile?.name || null, profile?.picture || null]
           );
           userId = created.insertId;
         } else {
@@ -37,7 +38,7 @@ export const authOptions = {
           // เพื่อให้หน้าต่าง ๆ ที่ใช้ข้อมูลจาก DB ได้รูปล่าสุดเสมอ
           await db.execute(
             "UPDATE users SET name = ?, image = ? WHERE id = ?",
-            [profile.name, profile.picture, userId]
+            [profile?.name || null, profile?.picture || null, userId]
           );
         }
 
