@@ -130,9 +130,9 @@ export default function AdminAnnouncementsPage() {
                       className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${
                         item.approval_status === "pending"
                           ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
-                          : item.approval_status === "อนุมัติ"
+                          : item.approval_status === "approved"
                           ? "bg-green-500/10 text-green-400 border-green-500/30"
-                          : item.approval_status === "ไม่อนุมัติ"
+                          : item.approval_status === "rejected"
                           ? "bg-red-500/10 text-red-400 border-red-500/30"
                           : "bg-slate-500/10 text-slate-300 border-white/20"
                       }`}
