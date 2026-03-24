@@ -80,7 +80,7 @@ export default function HomePage() {
           <div className="flex items-center gap-4 md:gap-6">
             {session ? (
               <>
-                <NotificationBell />
+                {session.user?.role === "student" && <NotificationBell />}
 
                 {session.user?.role === "student" && (
                   <>
