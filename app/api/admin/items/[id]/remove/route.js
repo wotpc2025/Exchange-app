@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db.js";
 import { getAppSession, requireAdmin } from "@/lib/auth.js";
+import { logAdminAction } from "@/lib/admin-audit.js";
 
 export async function POST(req, { params }) {
   const session = await getAppSession();
@@ -16,6 +17,14 @@ export async function POST(req, { params }) {
       "UPDATE items SET approval_status = 'removed' WHERE id = ?",
       [id]
     );
+    await logAdminAction({
+      adminUserId: session.user.id || null,
+      actionType: "item_removed",
+      targetType: "item",
+      targetId: Number(id),
+      detail: "approval_status=removed",
+      connection,
+    });
     await connection.release();
     return NextResponse.json({ message: "removed" });
   } catch (error) {

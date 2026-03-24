@@ -15,6 +15,9 @@ function actionLabel(action) {
     user_banned: "แบนผู้ใช้",
     user_unbanned: "ปลดแบนผู้ใช้",
     complaint_closed: "ปิดเคสร้องเรียนประกาศ",
+    item_approved: "อนุมัติประกาศ",
+    item_rejected: "ไม่อนุมัติประกาศ",
+    item_removed: "ถอดประกาศ",
   };
   return map[action] || action || "-";
 }
