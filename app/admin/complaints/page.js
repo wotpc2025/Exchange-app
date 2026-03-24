@@ -10,6 +10,17 @@ export default function AdminComplaintsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const complaintStatusLabel = (value) => {
+    switch (value) {
+      case "open":
+        return "เปิดเคส";
+      case "closed":
+        return "ปิดเคสแล้ว";
+      default:
+        return value ? String(value) : "-";
+    }
+  };
+
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [q, setQ] = useState("");
@@ -153,7 +164,7 @@ export default function AdminComplaintsPage() {
                                 : "bg-red-500/10 text-red-300 border-red-500/30"
                             }`}
                           >
-                            {isClosed ? "CLOSED" : "OPEN"}
+                            {complaintStatusLabel(c.status)}
                           </span>
                           <span className="text-xs text-slate-500">#{c.id}</span>
                           <Link

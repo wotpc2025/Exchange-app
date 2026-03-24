@@ -155,10 +155,6 @@ export default function AdminAnnouncementsPage() {
                       {approvalStatusLabel(item.approval_status)}
                     </span>
 
-                    <span className="text-[11px] text-slate-400">
-                      สถานะแลกของ: {item.status}
-                    </span>
-
                     <span className="text-[11px] text-red-300 border border-red-500/30 bg-red-500/10 px-2 py-1 rounded-full">
                       ร้องเรียน: {item.complaint_count ?? 0} ครั้ง
                     </span>
