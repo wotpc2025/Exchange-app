@@ -10,6 +10,21 @@ export default function AdminAnnouncementsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const approvalStatusLabel = (value) => {
+    switch (value) {
+      case "pending":
+        return "รออนุมัติ";
+      case "approved":
+        return "อนุมัติแล้ว";
+      case "rejected":
+        return "ไม่อนุมัติ";
+      case "removed":
+        return "ถอดประกาศ";
+      default:
+        return value ? String(value) : "-";
+    }
+  };
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
@@ -137,7 +152,7 @@ export default function AdminAnnouncementsPage() {
                           : "bg-slate-500/10 text-slate-300 border-white/20"
                       }`}
                     >
-                      {item.approval_status.toUpperCase()}
+                      {approvalStatusLabel(item.approval_status)}
                     </span>
 
                     <span className="text-[11px] text-slate-400">
