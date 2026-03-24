@@ -1,35 +1,30 @@
-# --- STAGE 1: Base Image ---
-FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# --- STAGE 2: Install Dependencies ---
-FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
-# --- STAGE 3: Builder ---
-FROM base AS builder
+# Stage 2: Build the application
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# NextAuth & DB variables are loaded at runtime, so no need to bake them in.
+
 RUN npm run build
 
-# --- STAGE 4: Runner (Production Image) ---
-FROM base AS runner
+# Stage 3: Runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV HOSTNAME="0.0.0.0"
-ENV PORT=3000
+ENV NODE_ENV production
 
-# Copy necessary files for Standalone mode
+
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
