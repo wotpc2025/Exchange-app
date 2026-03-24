@@ -12,8 +12,10 @@ export async function GET() {
     const connection = await db.getConnection();
     const [rows] = await connection.execute(
       `SELECT i.*,
+              u.id AS owner_id,
               (SELECT COUNT(*) FROM item_complaints c WHERE c.item_id = i.id) AS complaint_count
        FROM items i
+       LEFT JOIN users u ON u.email = i.owner_email
        ORDER BY FIELD(i.approval_status, 'pending','approved','rejected','removed'),
                 i.created_at DESC`
     );

@@ -34,7 +34,12 @@ export default function AdminAnnouncementsPage() {
       setLoading(true);
       const res = await fetch("/api/admin/items");
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      const allItems = Array.isArray(data) ? data : [];
+      setItems(
+        allItems.filter(
+          (item) => String(item?.status || "").toLowerCase() !== "exchanged"
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -130,7 +135,17 @@ export default function AdminAnnouncementsPage() {
                       {item.description}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      เจ้าของ: {item.owner_email}
+                      เจ้าของ:{" "}
+                      {item.owner_id ? (
+                        <Link
+                          href={`/users/${item.owner_id}`}
+                          className="hover:underline underline-offset-2"
+                        >
+                          {item.owner_email}
+                        </Link>
+                      ) : (
+                        item.owner_email
+                      )}
                     </p>
                     <p className="text-[11px] text-slate-500">
                       สร้างเมื่อ:{" "}
