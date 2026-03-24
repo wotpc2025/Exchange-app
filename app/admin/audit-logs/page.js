@@ -18,6 +18,7 @@ function actionLabel(action) {
     item_approved: "อนุมัติประกาศ",
     item_rejected: "ไม่อนุมัติประกาศ",
     item_removed: "ถอดประกาศ",
+    support_replied: "ตอบแชทนักศึกษา",
   };
   return map[action] || action || "-";
 }

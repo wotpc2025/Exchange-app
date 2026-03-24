@@ -3,6 +3,7 @@ import { db } from "@/lib/db.js";
 import { getAppSession, requireAdmin } from "@/lib/auth.js";
 import { sanitizeText } from "@/lib/security.js";
 import { enforceRateLimit, parseJson } from "@/lib/api-guards.js";
+import { logAdminAction } from "@/lib/admin-audit.js";
 
 export async function GET(req, { params }) {
   const session = await getAppSession();
@@ -113,6 +114,17 @@ export async function POST(req, { params }) {
       "INSERT INTO support_messages (conversation_id, sender_email, sender_role, message_text) VALUES (?, ?, ?, ?)",
       [id, email, senderRole, text]
     );
+
+    if (isAdmin) {
+      await logAdminAction({
+        adminUserId: session.user.id || null,
+        actionType: "support_replied",
+        targetType: "support_conversation",
+        targetId: Number(id),
+        detail: text.slice(0, 200),
+        connection,
+      });
+    }
 
     await connection.release();
     return NextResponse.json({ message: "sent" }, { status: 201 });
