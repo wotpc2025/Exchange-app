@@ -102,7 +102,7 @@ export default function AdminSupportListPage() {
                               : "bg-slate-500/10 text-slate-300 border-white/10"
                           }`}
                         >
-                          {c.status === "open" ? "OPEN" : "CLOSED"}
+                          {c.status === "open" ? "เปิดเคส" : "ปิดเคสแล้ว"}
                         </span>
                         <span className="text-xs text-slate-500">#{c.id}</span>
                         <span className="text-xs text-slate-300 truncate">
