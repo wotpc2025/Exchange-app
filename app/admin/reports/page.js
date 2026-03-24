@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import NotificationBell from "@/components/NotificationBell";
 
 function getSeverity(report) {
   const text = `${report?.reason || ""} ${report?.evidence_text || ""}`.toLowerCase();
@@ -246,7 +245,6 @@ export default function AdminReportsPage() {
             BUU Exchange
           </Link>
           <div className="flex items-center gap-3">
-            <NotificationBell />
             <Link href="/admin" className="text-slate-400 hover:text-white transition-colors">
               ← กลับหน้า Admin
             </Link>

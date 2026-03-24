@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import NotificationBell from "@/components/NotificationBell";
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
@@ -32,7 +31,6 @@ export default function AdminDashboardPage() {
             BUU Exchange
           </Link>
           <div className="flex items-center gap-3">
-            <NotificationBell />
             <Link href="/" className="text-slate-400 hover:text-white transition-colors">
               ← กลับหน้าหลัก
             </Link>
