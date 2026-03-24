@@ -185,7 +185,17 @@ export default function AdminComplaintsPage() {
                           ) : (
                             c.student_name || c.student_email
                           )}
-                          {"  "}·{"  "}เจ้าของประกาศ: {c.owner_email}
+                          {"  "}·{"  "}เจ้าของประกาศ:{" "}
+                          {c.owner_id ? (
+                            <Link
+                              href={`/users/${c.owner_id}`}
+                              className="hover:underline underline-offset-2"
+                            >
+                              {c.owner_email}
+                            </Link>
+                          ) : (
+                            c.owner_email
+                          )}
                         </p>
 
                         {c.reason ? (
