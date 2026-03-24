@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: exchange-app-prod
+    container_name: exchange-app
     restart: unless-stopped
     ports:
       - "3022:3000"
