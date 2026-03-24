@@ -39,7 +39,3 @@ Thumbs.db
 
 # vercel
 .vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
