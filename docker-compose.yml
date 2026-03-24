@@ -21,3 +21,5 @@ services:
 
       # App Config
       - NODE_ENV=production
+    env_file:
+      - .env
