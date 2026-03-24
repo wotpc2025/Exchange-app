@@ -21,7 +21,7 @@ function redirectToHome(req) {
   return NextResponse.redirect(new URL("/", req.url));
 }
 
-export async function middleware(req) {
+export async function proxy(req) {
   const { pathname } = req.nextUrl;
   const policy = resolveAccessPolicy(pathname, req.method);
 
