@@ -5,6 +5,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Theme bootstrap: if theme behavior changes, update this script together with app/globals.css and components/ThemeToggle.js */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

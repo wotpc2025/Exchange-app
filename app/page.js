@@ -83,6 +83,7 @@ export default function HomePage() {
 
             {session ? (
               <>
+                {/* Policy: keep NotificationBell only on homepage navbar; if changed, sync this rule in คู่มือ.md */}
                 {session.user?.role === "student" && <NotificationBell />}
 
                 {session.user?.role === "student" && (

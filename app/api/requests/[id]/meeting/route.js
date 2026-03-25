@@ -4,6 +4,8 @@ import { createNotificationsForEmails } from "@/lib/notifications.js";
 import { sanitizeText } from "@/lib/security.js";
 import { enforceRateLimit, parseJson, requireSessionOrThrow } from "@/lib/api-guards.js";
 
+// This route depends on exchange_meetings schema. If meeting endpoints fail, check db/phase3_migrations.sql and DB collation consistency.
+
 // GET: ดึงนัดหมายของ request นี้
 export async function GET(req, { params }) {
   const auth = await requireSessionOrThrow();

@@ -10,6 +10,7 @@ function dateText(value) {
   return d.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
 }
 
+// Intended placement: homepage navbar only. If reused globally, verify UX + policy noted in คู่มือ.md.
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState([]);
