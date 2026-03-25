@@ -4,6 +4,7 @@ import { categories } from "@/lib/categories";
 import { useSession, signOut, signIn } from "next-auth/react";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function HomePage() {
   const { data: session } = useSession();
@@ -78,6 +79,8 @@ export default function HomePage() {
           </Link>
 
           <div className="flex items-center gap-4 md:gap-6">
+            <ThemeToggle />
+
             {session ? (
               <>
                 {session.user?.role === "student" && <NotificationBell />}
