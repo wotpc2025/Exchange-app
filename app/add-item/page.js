@@ -4,7 +4,6 @@ import { categories } from "@/lib/categories";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { emitDataChanged } from "@/lib/refresh-bus";
-import NotificationBell from "@/components/NotificationBell";
 
 export default function AddItemPage() {
   const { data: session } = useSession();
@@ -117,7 +116,6 @@ export default function AddItemPage() {
             BUU Exchange
           </a>
           <div className="flex items-center gap-3">
-            <NotificationBell />
             <a href="/" className="text-slate-400 hover:text-white transition-colors">
               ← กลับหน้าหลัก
             </a>

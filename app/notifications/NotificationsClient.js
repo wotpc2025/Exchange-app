@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import NotificationBell from "@/components/NotificationBell";
 
 const PAGE_SIZE = 20;
 
@@ -100,7 +99,6 @@ export default function NotificationsClient() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <NotificationBell />
             <Link href="/" className="text-slate-400 hover:text-white transition-colors">
               ← กลับหน้าหลัก
             </Link>
