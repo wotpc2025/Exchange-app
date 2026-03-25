@@ -33,9 +33,9 @@ export async function GET(req, { params }) {
     }
 
     const [meetingRows] = await connection.execute(
-      `SELECT m.*, u.name AS proposed_by_name
+      `SELECT m.*, COALESCE(u.name, m.proposed_by) AS proposed_by_name
        FROM exchange_meetings m
-       JOIN users u ON u.email = m.proposed_by
+       LEFT JOIN users u ON BINARY u.email = BINARY m.proposed_by
        WHERE m.request_id = ?
        ORDER BY m.created_at DESC
        LIMIT 1`,
@@ -45,6 +45,7 @@ export async function GET(req, { params }) {
     await connection.release();
     return NextResponse.json({ meeting: meetingRows[0] || null });
   } catch (error) {
+    console.error("Meeting GET error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -127,6 +128,7 @@ export async function POST(req, { params }) {
     await connection.release();
     return NextResponse.json({ id: result.insertId }, { status: 201 });
   } catch (error) {
+    console.error("Meeting POST error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -200,6 +202,7 @@ export async function PUT(req, { params }) {
     await connection.release();
     return NextResponse.json({ ok: true });
   } catch (error) {
+    console.error("Meeting PUT error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
