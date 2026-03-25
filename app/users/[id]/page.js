@@ -297,7 +297,7 @@ function AdminView({ user, stats, avatarImage, fallbackImage, onlineBadge }) {
           <div className="mt-4 flex flex-wrap gap-2 items-center">
             {onlineBadge}
             <span className="text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/40 text-amber-300 uppercase tracking-widest">
-              ADMIN
+              แอดมิน
             </span>
           </div>
 
@@ -412,7 +412,7 @@ function StudentView({
           <div className="mt-4 flex flex-wrap gap-2 items-center">
             {onlineBadge}
             <span className="text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/40 text-amber-300 uppercase tracking-widest">
-              Student
+              นักศึกษา
             </span>
           </div>
 

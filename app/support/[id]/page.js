@@ -165,7 +165,7 @@ export default function SupportRoomPage({ params }) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+      <div className="chat-thread-bg flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length > 0 ? (
           messages.map((msg, i) => {
             const key = `msg-${i}-${msg?.id ?? "noid"}-${msg?.created_at ?? ""}`;

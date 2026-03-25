@@ -54,6 +54,12 @@ body {
   display: inline-block;
 }
 
+html[data-theme="light"] .text-gold-gradient {
+  background: linear-gradient(to bottom, #92400e, #b45309, #7c2d12);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* แผ่นกระจกฝ้า */
 .glass-card {
   background-color: var(--card-bg);
@@ -92,3 +98,26 @@ html[data-theme="light"] .bg-slate-800\/80 { background-color: rgba(203, 213, 22
 html[data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.08) !important; }
 html[data-theme="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.12) !important; }
 html[data-theme="light"] .border-white\/20 { border-color: rgba(15, 23, 42, 0.2) !important; }
+
+html[data-theme="light"] .text-amber-200 { color: #92400e !important; }
+html[data-theme="light"] .text-amber-300 { color: #92400e !important; }
+html[data-theme="light"] .text-amber-400 { color: #b45309 !important; }
+html[data-theme="light"] .text-amber-500 { color: #b45309 !important; }
+html[data-theme="light"] .text-amber-600 { color: #92400e !important; }
+html[data-theme="light"] .hover\:text-amber-200:hover { color: #92400e !important; }
+html[data-theme="light"] .hover\:text-amber-300:hover { color: #92400e !important; }
+html[data-theme="light"] .hover\:text-amber-400:hover { color: #b45309 !important; }
+html[data-theme="light"] .hover\:text-amber-500:hover { color: #b45309 !important; }
+
+html[data-theme="light"] .bg-amber-500\/5 { background-color: rgba(217, 119, 6, 0.1) !important; }
+html[data-theme="light"] .bg-amber-500\/10 { background-color: rgba(217, 119, 6, 0.14) !important; }
+html[data-theme="light"] .bg-amber-500\/20 { background-color: rgba(217, 119, 6, 0.2) !important; }
+
+.chat-thread-bg {
+  background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+}
+
+html[data-theme="light"] .chat-thread-bg {
+  background-image: none;
+  background-color: #eef2ff;
+}
