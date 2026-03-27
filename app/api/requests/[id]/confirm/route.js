@@ -82,12 +82,6 @@ export async function POST(req, { params }) {
         );
       }
 
-      // Debug log
-      console.log('DEBUG: confirm-exchange', { reqRow, after });
-      if (!reqRow.requester_email || !after.item_id) {
-        await connection.release();
-        return NextResponse.json({ error: "Missing requester_email or item_id" }, { status: 500 });
-      }
       // Keep item state aligned with a fully confirmed exchange.
       await connection.execute(
         `UPDATE items
