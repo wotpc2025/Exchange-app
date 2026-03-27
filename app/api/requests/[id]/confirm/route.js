@@ -83,9 +83,12 @@ export async function POST(req, { params }) {
       }
 
       // Defensive: check required values before updating items
-      if (!after.item_id || !reqRow.requester_email) {
+      // Convert undefined to null for SQL
+      const safeRequesterEmail = typeof reqRow.requester_email === 'undefined' ? null : reqRow.requester_email;
+      const safeItemId = typeof after.item_id === 'undefined' ? null : after.item_id;
+      if (safeRequesterEmail === null || safeItemId === null) {
         await connection.release();
-        return NextResponse.json({ error: `Cannot update item: item_id or requester_email missing`, debug: { item_id: after.item_id, requester_email: reqRow.requester_email } }, { status: 500 });
+        return NextResponse.json({ error: `Cannot update item: item_id or requester_email missing`, debug: { item_id: safeItemId, requester_email: safeRequesterEmail } }, { status: 500 });
       }
       try {
         await connection.execute(
@@ -94,7 +97,7 @@ export async function POST(req, { params }) {
                exchanged_with_email = ?,
                exchanged_like_given = 0
            WHERE id = ?`,
-          [reqRow.requester_email, after.item_id]
+          [safeRequesterEmail, safeItemId]
         );
       } catch (err) {
         console.error('Error updating items table:', err);
