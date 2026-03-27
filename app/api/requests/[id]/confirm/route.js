@@ -6,7 +6,7 @@ export async function POST(req, { params }) {
   const session = await getAppSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = params;
+  const { id } = await params;
   const email = session.user.email;
 
   try {
@@ -82,28 +82,15 @@ export async function POST(req, { params }) {
         );
       }
 
-      // Defensive: check required values before updating items
-      // Convert undefined to null for SQL
-      const safeRequesterEmail = typeof reqRow.requester_email === 'undefined' ? null : reqRow.requester_email;
-      const safeItemId = typeof after.item_id === 'undefined' ? null : after.item_id;
-      if (safeRequesterEmail === null || safeItemId === null) {
-        await connection.release();
-        return NextResponse.json({ error: `Cannot update item: item_id or requester_email missing`, debug: { item_id: safeItemId, requester_email: safeRequesterEmail } }, { status: 500 });
-      }
-      try {
-        await connection.execute(
-          `UPDATE items
-           SET status = 'exchanged',
-               exchanged_with_email = ?,
-               exchanged_like_given = 0
-           WHERE id = ?`,
-          [safeRequesterEmail, safeItemId]
-        );
-      } catch (err) {
-        console.error('Error updating items table:', err);
-        await connection.release();
-        return NextResponse.json({ error: 'Failed to update items table', details: err.message }, { status: 500 });
-      }
+      // Keep item state aligned with a fully confirmed exchange.
+      await connection.execute(
+        `UPDATE items
+         SET status = 'exchanged',
+             exchanged_with_email = ?,
+             exchanged_like_given = 0
+         WHERE id = ?`,
+        [reqRow.requester_email, after.item_id]
+      );
     }
 
     const [finalRows] = await connection.execute(
