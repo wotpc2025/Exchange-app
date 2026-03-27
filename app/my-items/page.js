@@ -29,6 +29,30 @@ export default function MyItems() {
       const arr = Array.isArray(data) ? data : [];
       const myData = arr.filter((item) => item.owner_email === session.user.email);
       setItems(myData);
+
+      // ดึงคำขอทั้งหมดที่เกี่ยวข้องกับผู้ใช้ (เป็นเจ้าของหรือผู้ขอ) เพื่อหา request ที่สถานะ completed
+      try {
+        const reqRes = await fetch(`/api/requests?user=${encodeURIComponent(session.user.email)}`);
+        if (reqRes.ok) {
+          const reqRows = await reqRes.json().catch(() => []);
+          const completedMap = {};
+          if (Array.isArray(reqRows)) {
+            for (const r of reqRows) {
+              try {
+                const iid = Number(r.item_id);
+                if (r.status === 'completed' && iid) {
+                  completedMap[iid] = true;
+                }
+              } catch (e) {
+                // ignore malformed rows
+              }
+            }
+          }
+          setCompletedRequests(completedMap);
+        }
+      } catch (e) {
+        // ignore
+      }
     } catch (err) {
       console.error("Error fetching items:", err);
     } finally {
