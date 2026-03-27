@@ -64,10 +64,9 @@ export default function ItemDetail({ params }) {
   }, [id, session?.user?.email]);
 
   const itemImages = Array.isArray(item?.images) && item.images.length > 0
-    ? item.images
-    : item?.image_url
-      ? [item.image_url]
-      : [];
+    ? item.images.filter(Boolean)
+    : (item?.image_url ? [item.image_url] : []);
+  const safeItemImages = Array.isArray(itemImages) ? itemImages.filter(Boolean) : [];
 
   useEffect(() => {
     setActiveImageIndex(0);
@@ -163,7 +162,7 @@ export default function ItemDetail({ params }) {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">กำลังโหลดข้อมูล...</div>;
-  if (!item) return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">ไม่พบสินค้านี้ในระบบ</div>;
+  if (!item || typeof item !== 'object') return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">ไม่พบสินค้านี้ในระบบ หรือข้อมูลผิดพลาด</div>;
 
   return (
     <div className="min-h-screen bg-[#020617] text-white py-20 px-6">
@@ -175,15 +174,15 @@ export default function ItemDetail({ params }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* ส่วนโชว์รูปภาพ */}
           <div className="glass-card p-4 rounded-[40px] border border-white/5 bg-slate-900/50">
-            {itemImages.length > 0 ? (
+            {safeItemImages.length > 0 ? (
               <div>
                 <div className="relative">
                   <img
-                    src={itemImages[activeImageIndex]}
-                    alt={item.title}
+                    src={safeItemImages[activeImageIndex] || ""}
+                    alt={item?.title || "preview"}
                     className="w-full rounded-[30px] shadow-2xl object-cover max-h-[520px]"
                   />
-                  {itemImages.length > 1 && (
+                  {safeItemImages.length > 1 && (
                     <>
                       <button
                         onClick={goPrevImage}
@@ -198,15 +197,15 @@ export default function ItemDetail({ params }) {
                         →
                       </button>
                       <span className="absolute bottom-3 right-3 text-[11px] font-black px-3 py-1 rounded-full bg-black/60 border border-white/20">
-                        {activeImageIndex + 1}/{itemImages.length}
+                        {activeImageIndex + 1}/{safeItemImages.length}
                       </span>
                     </>
                   )}
                 </div>
 
-                {itemImages.length > 1 && (
+                {safeItemImages.length > 1 && (
                   <div className="mt-3 grid grid-cols-5 gap-2">
-                    {itemImages.map((src, idx) => (
+                    {safeItemImages.map((src, idx) => (
                       <button
                         key={`thumb-${idx}`}
                         onClick={() => setActiveImageIndex(idx)}
@@ -250,7 +249,7 @@ export default function ItemDetail({ params }) {
                ) : session?.user?.email !== item.owner_email ? (
                  <>
                    {/* Badge สถานะคำขอปัจจุบัน */}
-                   {myRequest?.status === "pending" && (
+                   {myRequest && typeof myRequest === 'object' && myRequest.status === "pending" && myRequest.id && (
                      <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl">
                        <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse shrink-0"></span>
                        <div>
@@ -266,7 +265,7 @@ export default function ItemDetail({ params }) {
                      </div>
                    )}
 
-                   {myRequest?.status === "accepted" && (
+                   {myRequest && typeof myRequest === 'object' && myRequest.status === "accepted" && myRequest.id && (
                      <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 p-4 rounded-2xl">
                        <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shrink-0"></span>
                        <div>
@@ -282,7 +281,7 @@ export default function ItemDetail({ params }) {
                      </div>
                    )}
 
-                   {myRequest?.status === "rejected" && (
+                   {myRequest && typeof myRequest === 'object' && myRequest.status === "rejected" && (
                      <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
                        <span className="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0"></span>
                        <div>
@@ -292,7 +291,7 @@ export default function ItemDetail({ params }) {
                      </div>
                    )}
 
-                   {myRequest?.status === "completed" && (
+                   {myRequest && typeof myRequest === 'object' && myRequest.status === "completed" && myRequest.id && (
                      <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
                        <div>
@@ -309,7 +308,7 @@ export default function ItemDetail({ params }) {
                    )}
 
                    {/* แสดงปุ่มขอแลกเฉพาะเมื่อยังไม่มีคำขอ หรือถูกปฏิเสธแล้ว (ขอใหม่ได้) */}
-                   {(!myRequest || myRequest.status === "rejected") && (
+                   {(!myRequest || (typeof myRequest === 'object' && myRequest.status === "rejected")) && (
                      <button
                        onClick={startNegotiation}
                        disabled={isSubmitting}
