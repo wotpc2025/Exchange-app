@@ -53,6 +53,25 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    let currentUserReviewed = 0;
+    const reviewerId =
+      r.owner_email === session.user.email
+        ? r.owner_id
+        : r.requester_email === session.user.email
+          ? r.requester_id
+          : null;
+
+    if (reviewerId) {
+      const [reviewRows] = await connection.execute(
+        `SELECT id
+         FROM exchange_reviews
+         WHERE request_id = ? AND reviewer_user_id = ?
+         LIMIT 1`,
+        [requestId, reviewerId]
+      );
+      currentUserReviewed = reviewRows.length > 0 ? 1 : 0;
+    }
+
     // ดึงข้อความแชท
     const [messages] = await connection.execute(
       "SELECT * FROM messages WHERE request_id = ? ORDER BY created_at ASC",
@@ -60,7 +79,13 @@ export async function GET(req, { params }) {
     );
 
     await connection.release();
-    return NextResponse.json({ request: r, messages });
+    return NextResponse.json({
+      request: {
+        ...r,
+        current_user_reviewed: currentUserReviewed,
+      },
+      messages,
+    });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

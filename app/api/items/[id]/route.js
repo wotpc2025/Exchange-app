@@ -88,12 +88,16 @@ export async function PUT(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, description, category, wishlist, image_url, status, exchanged_with_email } = body;
+    const { title, description, category, wishlist, image_url, images_data, status, exchanged_with_email } = body;
+
+    // Determine images array (prefer images_data, fallback to image_url)
+    const imagesArr = Array.isArray(images_data) ? images_data.filter((v) => typeof v === "string" && v.trim() !== "").slice(0, 8) : (image_url ? [image_url] : []);
+    const mainImage = imagesArr[0] || image_url || null;
 
     connection = await db.getConnection();
 
     try {
-      // โหมดใหม่: อัปเดตคอลัมน์ระบบแลกสำเร็จ/ไลก์ได้ครบ
+      // Update main item fields (main image is first in array)
       await connection.execute(
         `UPDATE items SET 
           title = COALESCE(?, title), 
@@ -123,7 +127,7 @@ export async function PUT(req, { params }) {
           description || null,
           category || null,
           wishlist || null,
-          image_url || null,
+          mainImage || null,
           status || null,
           status || null,
           exchanged_with_email || null,
@@ -142,7 +146,7 @@ export async function PUT(req, { params }) {
       const msg = String(queryError?.message || "");
       if (!msg.includes("Unknown column")) throw queryError;
 
-      // โหมดเก่า: fallback เมื่อ DB ยังไม่เพิ่มคอลัมน์ใหม่
+      // Fallback for old schema
       await connection.execute(
         `UPDATE items SET 
           title = COALESCE(?, title), 
@@ -152,8 +156,40 @@ export async function PUT(req, { params }) {
           image_url = COALESCE(?, image_url),
           status = COALESCE(?, status)
         WHERE id = ?`,
-        [title || null, description || null, category || null, wishlist || null, image_url || null, status || null, id]
+        [title || null, description || null, category || null, wishlist || null, mainImage || null, status || null, id]
       );
+    }
+
+    // --- Update item_images table ---
+    if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+      try {
+        // Remove old images
+        await connection.execute("DELETE FROM item_images WHERE item_id = ?", [id]);
+        // Insert new images
+        for (let i = 0; i < imagesArr.length; i += 1) {
+          try {
+            await connection.execute(
+              "INSERT INTO item_images (item_id, image_url, sort_order) VALUES (?, ?, ?)",
+              [id, imagesArr[i], i]
+            );
+          } catch (orderColumnError) {
+            const orderColumnMsg = String(orderColumnError?.message || "");
+            if (!orderColumnMsg.includes("Unknown column")) {
+              throw orderColumnError;
+            }
+            await connection.execute(
+              "INSERT INTO item_images (item_id, image_url, ordering) VALUES (?, ?, ?)",
+              [id, imagesArr[i], i]
+            );
+          }
+        }
+      } catch (imgUpdateError) {
+        const msg = String(imgUpdateError?.message || "");
+        if (!msg.includes("doesn't exist") && !msg.includes("Unknown table") && !msg.includes("Unknown column")) {
+          throw imgUpdateError;
+        }
+        // Fallback: ignore if item_images table doesn't exist
+      }
     }
 
     return NextResponse.json({ message: "อัปเดตสถานะสำเร็จ" });

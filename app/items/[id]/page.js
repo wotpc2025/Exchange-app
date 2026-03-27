@@ -1,5 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+  const [interestedCount, setInterestedCount] = useState(0);
+  // Fetch interested count
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/requests/count?item_id=${id}`)
+      .then(res => res.ok ? res.json() : { count: 0 })
+      .then(data => setInterestedCount(data.count || 0))
+      .catch(() => setInterestedCount(0));
+  }, [id]);
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -17,6 +26,7 @@ export default function ItemDetail({ params }) {
   const [complaintReason, setComplaintReason] = useState("");
   const [complaintSubmitting, setComplaintSubmitting] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [myRequest, setMyRequest] = useState(null);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -35,6 +45,23 @@ export default function ItemDetail({ params }) {
     };
     fetchItem();
   }, [id]);
+
+  useEffect(() => {
+    const fetchMyRequest = async () => {
+      if (!id || !session?.user?.email) return;
+      try {
+        const res = await fetch(`/api/requests?user=${encodeURIComponent(session.user.email)}&item_id=${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          // คืนค่า request ล่าสุด (desc order) ที่ผู้ใช้เป็น requester
+          setMyRequest(Array.isArray(data) && data.length > 0 ? data[0] : null);
+        }
+      } catch (error) {
+        console.error("Fetch request error:", error);
+      }
+    };
+    fetchMyRequest();
+  }, [id, session?.user?.email]);
 
   const itemImages = Array.isArray(item?.images) && item.images.length > 0
     ? item.images
@@ -189,6 +216,11 @@ export default function ItemDetail({ params }) {
           {/* ส่วนข้อมูลรายละเอียด */}
           <div className="flex flex-col justify-center">
             <span className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-2">{item.category}</span>
+            {interestedCount > 0 && (
+              <span className="ml-2 inline-block bg-blue-900/60 text-blue-300 border border-blue-500/30 rounded-full px-3 py-1 text-xs font-bold align-middle">
+                มีคนสนใจ {interestedCount} คน
+              </span>
+            )}
             <h1 className="text-5xl font-black mb-4 text-white leading-tight">{item.title}</h1>
             <p className="text-slate-400 text-lg leading-relaxed mb-8">{item.description}</p>
             
@@ -207,13 +239,75 @@ export default function ItemDetail({ params }) {
                  </div>
                ) : session?.user?.email !== item.owner_email ? (
                  <>
-                   <button 
-                     onClick={startNegotiation}
-                     disabled={isSubmitting}
-                     className="gold-glow bg-amber-500 text-slate-950 font-black py-5 px-8 rounded-2xl text-center text-xl hover:bg-amber-400 transition-all disabled:opacity-50"
-                   >
-                     {isSubmitting ? "กำลังเปิดห้องแชท..." : "💬 ทักแชทเจรจาขอแลก"}
-                   </button>
+                   {/* Badge สถานะคำขอปัจจุบัน */}
+                   {myRequest?.status === "pending" && (
+                     <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl">
+                       <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse shrink-0"></span>
+                       <div>
+                         <p className="text-blue-300 font-black text-sm">รอการตอบรับ</p>
+                         <p className="text-slate-500 text-xs mt-0.5">เจ้าของยังไม่ตอบรับคำขอของคุณ</p>
+                       </div>
+                       <button
+                         onClick={() => router.push(`/chat/${myRequest.id}`)}
+                         className="ml-auto text-xs font-black text-blue-300 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-xl transition-all"
+                       >
+                         ไปห้องแชท →
+                       </button>
+                     </div>
+                   )}
+
+                   {myRequest?.status === "accepted" && (
+                     <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 p-4 rounded-2xl">
+                       <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shrink-0"></span>
+                       <div>
+                         <p className="text-green-300 font-black text-sm">ตอบรับแล้ว — กำลังเจรจา</p>
+                         <p className="text-slate-500 text-xs mt-0.5">เจ้าของรับคำขอของคุณแล้ว</p>
+                       </div>
+                       <button
+                         onClick={() => router.push(`/chat/${myRequest.id}`)}
+                         className="ml-auto text-xs font-black text-green-300 border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 px-3 py-1.5 rounded-xl transition-all"
+                       >
+                         ไปห้องแชท →
+                       </button>
+                     </div>
+                   )}
+
+                   {myRequest?.status === "rejected" && (
+                     <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">
+                       <span className="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0"></span>
+                       <div>
+                         <p className="text-red-300 font-black text-sm">คำขอถูกปฏิเสธ</p>
+                         <p className="text-slate-500 text-xs mt-0.5">คุณสามารถส่งคำขอใหม่ได้</p>
+                       </div>
+                     </div>
+                   )}
+
+                   {myRequest?.status === "completed" && (
+                     <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
+                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                       <div>
+                         <p className="text-emerald-300 font-black text-sm">แลกสำเร็จแล้ว 🎉</p>
+                         <p className="text-slate-500 text-xs mt-0.5">การแลกเปลี่ยนนี้เสร็จสิ้นแล้ว</p>
+                       </div>
+                       <button
+                         onClick={() => router.push(`/chat/${myRequest.id}`)}
+                         className="ml-auto text-xs font-black text-emerald-300 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-xl transition-all"
+                       >
+                         ดูห้องแชท →
+                       </button>
+                     </div>
+                   )}
+
+                   {/* แสดงปุ่มขอแลกเฉพาะเมื่อยังไม่มีคำขอ หรือถูกปฏิเสธแล้ว (ขอใหม่ได้) */}
+                   {(!myRequest || myRequest.status === "rejected") && (
+                     <button
+                       onClick={startNegotiation}
+                       disabled={isSubmitting}
+                       className="gold-glow bg-amber-500 text-slate-950 font-black py-5 px-8 rounded-2xl text-center text-xl hover:bg-amber-400 transition-all disabled:opacity-50"
+                     >
+                       {isSubmitting ? "กำลังเปิดห้องแชท..." : myRequest?.status === "rejected" ? "💬 ขอแลกใหม่" : "💬 ทักแชทเจรจาขอแลก"}
+                     </button>
+                   )}
 
                    <button
                      onClick={() => {

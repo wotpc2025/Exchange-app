@@ -156,7 +156,7 @@ export default function HomePage() {
         {/* --- Header Section --- */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 text-left">
           <div className="max-w-xl">
-            <h2 className="text-4xl md:text-5xl font-black mb-4 text-amber-500 leading-tight">ของกิน ของใช้ <br/><span className="text-amber-500">แลกได้ที่นี่</span></h2>
+            <h2 className="text-4xl md:text-5xl font-black mb-4 text-amber-500 leading-tight">ของใช้ แลกเปลี่ยนได้ที่นี้<br/><span className="text-amber-500">แลกได้ที่นี่</span></h2>
             <p className="text-slate-400 text-lg italic">"BUU Exchange: มิตรภาพเริ่มได้จากการแบ่งปัน"</p>
           </div>
           {session && session.user?.role !== "admin" && (

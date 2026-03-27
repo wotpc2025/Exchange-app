@@ -257,6 +257,26 @@ export default function ChatRoom({ params }) {
         alert(data.error || "ยืนยันไม่สำเร็จ");
         return;
       }
+
+      setRequestInfo((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev };
+
+        if (prev.owner_email === session?.user?.email) {
+          next.owner_confirmed = 1;
+        }
+        if (prev.requester_email === session?.user?.email) {
+          next.requester_confirmed = 1;
+        }
+
+        if (data.bothConfirmed) {
+          next.status = data.requestStatus || "completed";
+          next.item_status = data.itemStatus || "exchanged";
+        }
+
+        return next;
+      });
+
       alert(
         data.bothConfirmed
           ? "ยืนยันครบ 2 ฝ่ายแล้ว! ระบบจะปิดดีลให้ทันที"
@@ -305,9 +325,21 @@ export default function ChatRoom({ params }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data?.error === "Already reviewed") {
+          setRequestInfo((prev) =>
+            prev ? { ...prev, current_user_reviewed: 1 } : prev
+          );
+          setReviewOpen(false);
+          alert("คุณรีวิวรายการนี้ไปแล้ว");
+          return;
+        }
         alert(data.error || "ส่งรีวิวไม่สำเร็จ");
         return;
       }
+
+      setRequestInfo((prev) =>
+        prev ? { ...prev, current_user_reviewed: 1 } : prev
+      );
       alert("ขอบคุณสำหรับการรีวิว!");
       setReviewOpen(false);
       fetchData();
@@ -315,6 +347,28 @@ export default function ChatRoom({ params }) {
       setReviewBusy(false);
     }
   };
+
+  const requestStatus = String(requestInfo?.status || "").toLowerCase();
+  const itemStatus = String(requestInfo?.item_status || "").toLowerCase();
+  const isExchangeConfirmPhase = requestStatus === "accepted" || requestStatus === "completed";
+  const isOwnerInRequest = requestInfo?.owner_email === session?.user?.email;
+  const isRequesterInRequest = requestInfo?.requester_email === session?.user?.email;
+  const hasCurrentUserConfirmed =
+    (isOwnerInRequest && Number(requestInfo?.owner_confirmed) === 1) ||
+    (isRequesterInRequest && Number(requestInfo?.requester_confirmed) === 1);
+  const showConfirmExchangeButton =
+    isExchangeConfirmPhase && itemStatus !== "exchanged" && !hasCurrentUserConfirmed;
+  const showWaitingOtherConfirm =
+    requestStatus === "accepted" && itemStatus !== "exchanged" && hasCurrentUserConfirmed;
+  const bothSidesConfirmed =
+    Number(requestInfo?.owner_confirmed) === 1 && Number(requestInfo?.requester_confirmed) === 1;
+  const canReviewExchange =
+    (requestStatus === "completed" || bothSidesConfirmed) &&
+    itemStatus === "exchanged" &&
+    (isOwnerInRequest || isRequesterInRequest);
+  const hasCurrentUserReviewed = Number(requestInfo?.current_user_reviewed) === 1;
+  const showReviewButton = canReviewExchange && !hasCurrentUserReviewed;
+  const showReviewedBadge = canReviewExchange && hasCurrentUserReviewed;
 
   if (loading) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white">กำลังเข้าสู่ห้องเจรจา...</div>;
 
@@ -328,7 +382,7 @@ export default function ChatRoom({ params }) {
           <div>
             <h2 className="font-bold text-sm md:text-base line-clamp-1">{requestInfo?.item_title}</h2>
             <div className="flex items-center gap-2">
-               <span className={`w-2 h-2 rounded-full animate-pulse ${requestInfo?.status === 'pending' ? 'bg-blue-500' : requestInfo?.status === 'accepted' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${requestInfo?.status === 'pending' ? 'bg-blue-500' : requestInfo?.status === 'accepted' ? 'bg-green-500' : requestInfo?.status === 'completed' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
               <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">สถานะ: {getThaiRequestStatus(requestInfo?.status)}</p>
             </div>
             <div className="mt-1">
@@ -398,14 +452,20 @@ export default function ChatRoom({ params }) {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          {(requestInfo?.status === "accepted" || requestInfo?.status === "completed") && String(requestInfo?.item_status || "").toLowerCase() !== "exchanged" && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {showConfirmExchangeButton && (
             <button
               onClick={confirmExchange}
               className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
             >
               ยืนยันแลกสำเร็จ
             </button>
+          )}
+
+          {showWaitingOtherConfirm && (
+            <span className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-300">
+              กำลังรออีกฝ่ายกดยืนยัน
+            </span>
           )}
 
           {String(requestInfo?.item_status || "").toLowerCase() === "exchanged" && requestInfo?.requester_email === session?.user?.email && (
@@ -424,13 +484,19 @@ export default function ChatRoom({ params }) {
             )
           )}
 
-          {requestInfo?.status === "completed" && (
+          {showReviewButton && (
             <button
               onClick={() => setReviewOpen(true)}
               className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
             >
               ให้คะแนน/รีวิว
             </button>
+          )}
+
+          {showReviewedBadge && (
+            <span className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+              รีวิวแล้ว
+            </span>
           )}
         </div>
       </div>
@@ -618,6 +684,11 @@ export default function ChatRoom({ params }) {
                   onChange={(e) => setMeetingForm((v) => ({ ...v, meetTime: e.target.value }))}
                   required
                   min={new Date().toISOString().slice(0, 16)}
+                  max={(() => {
+                    const now = new Date();
+                    const maxDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    return maxDate.toISOString().slice(0, 16);
+                  })()}
                   className="w-full bg-slate-900/60 rounded-2xl p-3 outline-none border border-white/10 focus:border-amber-500/50 text-sm"
                 />
               </div>

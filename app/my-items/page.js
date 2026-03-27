@@ -229,7 +229,8 @@ export default function MyItems() {
               const approvalStatus = String(item.approval_status || "").toLowerCase();
               const itemStatus = String(item.status || "").toLowerCase();
               const isRejected = approvalStatus === "rejected" || approvalStatus === "reject";
-              const canManageItem = !isRejected && itemStatus !== "exchanged" && itemStatus !== "removed";
+              const isApproved = approvalStatus === "approved";
+              const canManageItem = isApproved && !isRejected && itemStatus !== "exchanged" && itemStatus !== "removed";
 
               return (
               <div key={item.id} className="glass-card p-6 flex flex-col border border-white/5 bg-white/5 rounded-[35px] hover:border-white/10 transition-all">

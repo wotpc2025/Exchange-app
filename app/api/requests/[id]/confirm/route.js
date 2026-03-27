@@ -71,15 +71,18 @@ export async function POST(req, { params }) {
     const after = afterRows[0];
 
     const bothConfirmed = !!after.owner_confirmed && !!after.requester_confirmed;
-    if (bothConfirmed && after.status !== "completed") {
-      await connection.execute(
-        `UPDATE exchange_requests
-         SET status = 'completed',
-             completed_at = NOW()
-         WHERE id = ?`,
-        [id]
-      );
+    if (bothConfirmed) {
+      if (after.status !== "completed") {
+        await connection.execute(
+          `UPDATE exchange_requests
+           SET status = 'completed',
+               completed_at = NOW()
+           WHERE id = ?`,
+          [id]
+        );
+      }
 
+      // Keep item state aligned with a fully confirmed exchange.
       await connection.execute(
         `UPDATE items
          SET status = 'exchanged',
@@ -90,11 +93,29 @@ export async function POST(req, { params }) {
       );
     }
 
+    const [finalRows] = await connection.execute(
+      `SELECT status
+       FROM exchange_requests
+       WHERE id = ?
+       LIMIT 1`,
+      [id]
+    );
+
+    const [itemRows] = await connection.execute(
+      `SELECT status
+       FROM items
+       WHERE id = ?
+       LIMIT 1`,
+      [after.item_id]
+    );
+
     await connection.release();
     return NextResponse.json({
       ok: true,
       confirmedBy: isOwner ? "owner" : "requester",
       bothConfirmed,
+      requestStatus: finalRows[0]?.status || after.status,
+      itemStatus: itemRows[0]?.status || null,
     });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
