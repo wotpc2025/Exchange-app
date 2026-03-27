@@ -31,6 +31,7 @@ export default function ItemDetail({ params }) {
   const [myRequest, setMyRequest] = useState(null);
 
   useEffect(() => {
+    let interval;
     const fetchItem = async () => {
       if (!id) return;
       try {
@@ -46,7 +47,16 @@ export default function ItemDetail({ params }) {
       }
     };
     fetchItem();
-  }, [id]);
+    // Polling เฉพาะถ้ายังไม่ exchanged
+    interval = setInterval(() => {
+      if (item && item.status === 'exchanged') {
+        clearInterval(interval);
+      } else {
+        fetchItem();
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [id, item?.status]);
 
   useEffect(() => {
     const fetchMyRequest = async () => {
