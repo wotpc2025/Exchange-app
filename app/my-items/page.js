@@ -39,8 +39,17 @@ export default function MyItems() {
   useEffect(() => {
     if (session?.user?.email) {
       loadMyItems();
+      // Polling เฉพาะถ้ามีประกาศที่ยังไม่ exchanged
+      const interval = setInterval(() => {
+        if (items.some((item) => item.status !== 'exchanged' && item.status !== 'removed')) {
+          loadMyItems();
+        } else {
+          clearInterval(interval);
+        }
+      }, 3000);
+      return () => clearInterval(interval);
     }
-  }, [session?.user?.email]);
+  }, [session?.user?.email, items]);
 
   // ✅ ฟังก์ชันอัปเดตสถานะ (available, pending, exchanged)
   const updateStatus = async (id, newStatus) => {
