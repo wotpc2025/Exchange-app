@@ -6,6 +6,7 @@ import Link from "next/link";
 export default function MyItems() {
   const { data: session } = useSession();
   const [items, setItems] = useState([]);
+  const [completedRequests, setCompletedRequests] = useState({});
   const [loading, setLoading] = useState(true);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [markingExchangeId, setMarkingExchangeId] = useState(null);
