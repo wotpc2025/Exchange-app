@@ -1,6 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+
+export default function ItemDetail({ params }) {
   const [interestedCount, setInterestedCount] = useState(0);
+  const pathname = usePathname();
+  const id = pathname?.split("/").filter(Boolean).pop();
+
   // Fetch interested count
   useEffect(() => {
     if (!id) return;
@@ -9,13 +17,7 @@ import { useState, useEffect } from "react";
       .then(data => setInterestedCount(data.count || 0))
       .catch(() => setInterestedCount(0));
   }, [id]);
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
-import { useSession } from "next-auth/react";
-
-export default function ItemDetail({ params }) {
-  const pathname = usePathname();
-  const id = pathname?.split("/").filter(Boolean).pop();
+  // ...existing code...
 
   const { data: session } = useSession();
   const router = useRouter();
