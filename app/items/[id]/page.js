@@ -162,7 +162,9 @@ export default function ItemDetail({ params }) {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">กำลังโหลดข้อมูล...</div>;
-  if (!item || typeof item !== 'object') return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">ไม่พบสินค้านี้ในระบบ หรือข้อมูลผิดพลาด</div>;
+  if (!item || typeof item !== 'object' || Array.isArray(item)) {
+    return <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">ไม่พบสินค้านี้ในระบบ หรือข้อมูลผิดพลาด</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#020617] text-white py-20 px-6">
@@ -224,22 +226,22 @@ export default function ItemDetail({ params }) {
 
           {/* ส่วนข้อมูลรายละเอียด */}
           <div className="flex flex-col justify-center">
-            <span className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-2">{item.category}</span>
+            <span className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-2">{typeof item.category === 'string' ? item.category : 'ไม่ระบุหมวดหมู่'}</span>
             {interestedCount > 0 && (
               <span className="ml-2 inline-block bg-blue-900/60 text-blue-300 border border-blue-500/30 rounded-full px-3 py-1 text-xs font-bold align-middle">
                 มีคนสนใจ {interestedCount} คน
               </span>
             )}
-            <h1 className="text-5xl font-black mb-4 text-white leading-tight">{item.title}</h1>
-            <p className="text-slate-400 text-lg leading-relaxed mb-8">{item.description}</p>
+            <h1 className="text-5xl font-black mb-4 text-white leading-tight">{typeof item.title === 'string' ? item.title : 'ไม่มีชื่อรายการ'}</h1>
+            <p className="text-slate-400 text-lg leading-relaxed mb-8">{typeof item.description === 'string' ? item.description : 'ไม่มีรายละเอียด'}</p>
             
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-8 mb-8">
               <p className="text-amber-500 text-xs font-black uppercase mb-2 tracking-widest">สิ่งที่อยากแลกด้วย</p>
-              <p className="text-3xl font-bold italic text-amber-200">"{item.wishlist || "อะไรก็ได้"}"</p>
+              <p className="text-3xl font-bold italic text-amber-200">"{typeof item.wishlist === 'string' && item.wishlist.trim() ? item.wishlist : "อะไรก็ได้"}"</p>
             </div>
 
             <div className="flex flex-col gap-4">
-               <p className="text-sm text-slate-500">ลงประกาศเมื่อ: {new Date(item.created_at).toLocaleDateString('th-TH')}</p>
+               <p className="text-sm text-slate-500">ลงประกาศเมื่อ: {item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : 'ไม่ระบุวันที่'}</p>
                
                {/* เช็คว่าเป็นเจ้าของเองหรือไม่ ถ้าไม่ใช่ถึงจะโชว์ปุ่มแชท (admin ดูได้อย่างเดียว) */}
                {session?.user?.role === "admin" ? (
@@ -339,15 +341,15 @@ export default function ItemDetail({ params }) {
               
               <p className="text-center text-xs text-slate-600 italic">
                 เจ้าของ:{" "}
-                {item.owner_id ? (
+                {item.owner_id && (typeof item.owner_id === 'string' || typeof item.owner_id === 'number') ? (
                   <Link
                     href={`/users/${item.owner_id}`}
                     className="underline-offset-2 hover:underline"
                   >
-                    {item.owner_name || item.owner_email}
+                    {item.owner_name || item.owner_email || 'ไม่ระบุชื่อ' }
                   </Link>
                 ) : (
-                  item.owner_name || item.owner_email
+                  item.owner_name || item.owner_email || 'ไม่ระบุชื่อ'
                 )}
               </p>
             </div>
