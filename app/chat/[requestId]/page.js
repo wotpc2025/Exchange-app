@@ -362,10 +362,11 @@ export default function ChatRoom({ params }) {
     requestStatus === "accepted" && itemStatus !== "exchanged" && hasCurrentUserConfirmed;
   const bothSidesConfirmed =
     Number(requestInfo?.owner_confirmed) === 1 && Number(requestInfo?.requester_confirmed) === 1;
+  // Only requester can review
   const canReviewExchange =
     (requestStatus === "completed" || bothSidesConfirmed) &&
     itemStatus === "exchanged" &&
-    (isOwnerInRequest || isRequesterInRequest);
+    isRequesterInRequest;
   const hasCurrentUserReviewed = Number(requestInfo?.current_user_reviewed) === 1;
   const showReviewButton = canReviewExchange && !hasCurrentUserReviewed;
   const showReviewedBadge = canReviewExchange && hasCurrentUserReviewed;
