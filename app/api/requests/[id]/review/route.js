@@ -66,13 +66,14 @@ export async function POST(req, { params }) {
 
     const isOwner = r.owner_email === email;
     const isRequester = r.requester_email === email;
-    if (!isOwner && !isRequester) {
+    if (!isRequester) {
       await connection.release();
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Only the requester can review this exchange." }, { status: 403 });
     }
 
-    const reviewerId = isOwner ? r.owner_id : r.requester_id;
-    const reviewedId = isOwner ? r.requester_id : r.owner_id;
+    // Reviewer must be requester, reviewed is owner
+    const reviewerId = r.requester_id;
+    const reviewedId = r.owner_id;
 
     await connection.execute(
       `INSERT INTO exchange_reviews
