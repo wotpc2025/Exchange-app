@@ -293,7 +293,7 @@ export default function MyItems() {
                               : '✅ คืนสถานะพร้อมแลก'}
                         </button>
                         {/* เงื่อนไขใหม่: แสดงปุ่มแลกสำเร็จหลัง request completed ทั้งสองฝ่าย แต่ item ยังไม่ exchanged */}
-                        {item.request_completed && itemStatus !== 'exchanged' && (
+                        {completedRequests[item.id] && itemStatus !== 'exchanged' && (
                           <button 
                             onClick={() => markExchangedWithOnlyPartner(item)}
                             className="flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white transition-all"
