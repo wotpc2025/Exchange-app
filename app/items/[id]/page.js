@@ -105,8 +105,18 @@ export default function ItemDetail({ params }) {
 
       const data = await res.json();
       if (res.ok) {
-        // เมื่อสร้าง request สำเร็จ ให้ไปที่หน้าแชทโดยใช้ id ของ request นั้น
-        router.push(`/chat/${data.id}`);
+        // ป้องกันกรณี backend ส่ง id ผิดรูปแบบ เช่น "7/1" หรือ array
+        let chatId = data.id;
+        if (Array.isArray(chatId)) chatId = chatId[0];
+        if (typeof chatId === "string" && chatId.includes("/")) {
+          console.error("[BUG] Unexpected chat id format from backend:", chatId);
+          chatId = chatId.split("/")[0];
+        }
+        if (!chatId || isNaN(Number(chatId))) {
+          alert("เกิดข้อผิดพลาด: รหัสห้องแชทไม่ถูกต้อง");
+          return;
+        }
+        router.push(`/chat/${chatId}`);
       } else {
         alert("เกิดข้อผิดพลาด: " + data.error);
       }
