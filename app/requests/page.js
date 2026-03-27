@@ -19,8 +19,10 @@ export default function RequestsPage() {
     return "ไม่ทราบสถานะ";
   };
 
-  const getThaiItemStatus = (rawStatus) => {
+  const getThaiItemStatus = (rawStatus, reqStatus) => {
     const status = String(rawStatus || "").toLowerCase();
+    const rStatus = String(reqStatus || "").toLowerCase();
+    if (rStatus === "rejected") return "ถูกปฏิเสธ";
     if (status === "available") return "พร้อมแลก";
     if (status === "pending") return "กำลังเจรจา";
     if (status === "exchanged") return "แลกสำเร็จ";
@@ -37,8 +39,10 @@ export default function RequestsPage() {
     return "bg-slate-500/10 text-slate-300 border border-slate-500/20";
   };
 
-  const getItemStatusClass = (rawStatus) => {
+  const getItemStatusClass = (rawStatus, reqStatus) => {
     const status = String(rawStatus || "").toLowerCase();
+    const rStatus = String(reqStatus || "").toLowerCase();
+    if (rStatus === "rejected") return "bg-red-500/10 text-red-400 border border-red-500/30";
     if (status === "available") return "bg-green-500/10 text-green-300 border border-green-500/30";
     if (status === "pending") return "bg-blue-500/10 text-blue-300 border border-blue-500/30";
     if (status === "exchanged") return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30";
@@ -152,8 +156,8 @@ export default function RequestsPage() {
                   </div>
 
                   <div className="text-right">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getItemStatusClass(req.item_status)}`}>
-                      {getThaiItemStatus(req.item_status)}
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getItemStatusClass(req.item_status, req.status)}`}>
+                      {getThaiItemStatus(req.item_status, req.status)}
                     </span>
                     <p className="text-[10px] text-slate-500 mt-2 font-bold">
                       คำขอ: {getThaiRequestStatus(req.status)}

@@ -292,13 +292,16 @@ export default function MyItems() {
                               ? '⌛ กำลังเจรจา'
                               : '✅ คืนสถานะพร้อมแลก'}
                         </button>
-                        <button 
-                          onClick={() => markExchangedWithOnlyPartner(item)}
-                          className="flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white transition-all"
-                          disabled={markingExchangeId === item.id}
-                        >
-                          {markingExchangeId === item.id ? "กำลังบันทึก..." : "🤝 แลกสำเร็จแล้ว"}
-                        </button>
+                        {/* เงื่อนไขใหม่: แสดงปุ่มแลกสำเร็จหลัง request completed ทั้งสองฝ่าย แต่ item ยังไม่ exchanged */}
+                        {item.request_completed && itemStatus !== 'exchanged' && (
+                          <button 
+                            onClick={() => markExchangedWithOnlyPartner(item)}
+                            className="flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white transition-all"
+                            disabled={markingExchangeId === item.id}
+                          >
+                            {markingExchangeId === item.id ? "กำลังบันทึก..." : "🤝 แลกสำเร็จแล้ว"}
+                          </button>
+                        )}
                         <Link href={`/items/${item.id}/edit`} className="flex-1 md:flex-none">
                           <button className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-2 rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all font-bold text-xs">
                             แก้ไข
