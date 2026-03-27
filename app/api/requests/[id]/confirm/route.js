@@ -82,15 +82,25 @@ export async function POST(req, { params }) {
         );
       }
 
-      // Keep item state aligned with a fully confirmed exchange.
-      await connection.execute(
-        `UPDATE items
-         SET status = 'exchanged',
-             exchanged_with_email = ?,
-             exchanged_like_given = 0
-         WHERE id = ?`,
-        [reqRow.requester_email, after.item_id]
-      );
+      // Defensive: check required values before updating items
+      if (!after.item_id || !reqRow.requester_email) {
+        await connection.release();
+        return NextResponse.json({ error: `Cannot update item: item_id or requester_email missing`, debug: { item_id: after.item_id, requester_email: reqRow.requester_email } }, { status: 500 });
+      }
+      try {
+        await connection.execute(
+          `UPDATE items
+           SET status = 'exchanged',
+               exchanged_with_email = ?,
+               exchanged_like_given = 0
+           WHERE id = ?`,
+          [reqRow.requester_email, after.item_id]
+        );
+      } catch (err) {
+        console.error('Error updating items table:', err);
+        await connection.release();
+        return NextResponse.json({ error: 'Failed to update items table', details: err.message }, { status: 500 });
+      }
     }
 
     const [finalRows] = await connection.execute(
