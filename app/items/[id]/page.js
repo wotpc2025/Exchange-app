@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 export default function ItemDetail({ params }) {
+  const [modalImage, setModalImage] = useState(null);
   const [interestedCount, setInterestedCount] = useState(0);
   const pathname = usePathname();
   const id = pathname?.split("/").filter(Boolean).pop();
@@ -194,7 +195,8 @@ export default function ItemDetail({ params }) {
                   <img
                     src={safeItemImages[activeImageIndex] || ""}
                     alt={item?.title || "preview"}
-                    className="w-full rounded-[30px] shadow-2xl object-cover max-h-[520px]"
+                    className="w-full rounded-[30px] shadow-2xl object-cover max-h-[520px] cursor-pointer"
+                    onClick={() => setModalImage(safeItemImages[activeImageIndex])}
                   />
                   {safeItemImages.length > 1 && (
                     <>
@@ -225,7 +227,12 @@ export default function ItemDetail({ params }) {
                         onClick={() => setActiveImageIndex(idx)}
                         className={`rounded-xl overflow-hidden border ${idx === activeImageIndex ? "border-amber-400" : "border-white/10"}`}
                       >
-                        <img src={src} alt={`thumb-${idx}`} className="h-16 w-full object-cover" />
+                        <img
+                          src={src}
+                          alt={`thumb-${idx}`}
+                          className="h-16 w-full object-cover cursor-pointer"
+                          onClick={e => { e.stopPropagation(); setModalImage(src); }}
+                        />
                       </button>
                     ))}
                   </div>
@@ -421,6 +428,22 @@ export default function ItemDetail({ params }) {
           </div>
         </div>
       </div>
+      {/* Modal for image preview */}
+      {modalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModalImage(null)}>
+          <img
+            src={modalImage}
+            alt="preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl border-4 border-white shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-6 right-6 text-white text-3xl bg-black/60 rounded-full px-4 py-2 hover:bg-black/80"
+            onClick={() => setModalImage(null)}
+            aria-label="ปิดภาพ"
+          >✕</button>
+        </div>
+      )}
     </div>
   );
 }
