@@ -75,7 +75,12 @@ export async function POST(req, { params }) {
 
   const body = await parseJson(req, {});
   const text = sanitizeText(body?.message_text, { maxLen: 2000, allowNewlines: true });
-  if (!text) return NextResponse.json({ error: "message_text required" }, { status: 400 });
+  const imageData = body?.image_data;
+  let imageUrl = null;
+  if (imageData && typeof imageData === "string" && imageData.startsWith("data:image/")) {
+    imageUrl = imageData;
+  }
+  if (!text && !imageUrl) return NextResponse.json({ error: "message_text required" }, { status: 400 });
 
   try {
     const connection = await db.getConnection();
@@ -111,8 +116,8 @@ export async function POST(req, { params }) {
     }
 
     await connection.execute(
-      "INSERT INTO support_messages (conversation_id, sender_email, sender_role, message_text) VALUES (?, ?, ?, ?)",
-      [id, email, senderRole, text]
+      "INSERT INTO support_messages (conversation_id, sender_email, sender_role, message_text, image_url) VALUES (?, ?, ?, ?, ?)",
+      [id, email, senderRole, text, imageUrl]
     );
 
     if (isAdmin) {
