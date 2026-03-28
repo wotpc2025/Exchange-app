@@ -5,6 +5,7 @@ import { useSession, signOut, signIn } from "next-auth/react";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import ThemeToggle from "@/components/ThemeToggle";
+import RulesButton from "@/components/RulesButton";
 
 export default function HomePage() {
   const { data: session } = useSession();
@@ -252,6 +253,7 @@ export default function HomePage() {
           </div>
         )}
       </main>
+      <RulesButton />
     </div>
   );
 }
