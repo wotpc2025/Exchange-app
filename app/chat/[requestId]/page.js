@@ -501,7 +501,7 @@ export default function ChatRoom({ params }) {
               </button>
             ))}
 
-          {requestInfo?.status === "completed" && (
+          {requestInfo?.status === "completed" && requestInfo?.requester_email === session?.user?.email && (
             <button
               onClick={() => setReviewOpen(true)}
               className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
