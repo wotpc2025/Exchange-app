@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function ChatRoom({ params }) {
+  const [modalImage, setModalImage] = useState(null);
   // ✅ แกะ requestId จาก params
   const pathname = usePathname();
   const requestId = pathname?.split("/").filter(Boolean).pop();
@@ -726,9 +727,12 @@ export default function ChatRoom({ params }) {
                 : 'bg-slate-800 text-white rounded-tl-none'
               }`}>
                 {msg.image_url ? (
-                  <a href={msg.image_url} target="_blank" rel="noreferrer">
-                    <img src={msg.image_url} alt="chat-image" className="rounded-xl max-h-72 object-cover border border-white/20 mb-2" />
-                  </a>
+                  <img
+                    src={msg.image_url}
+                    alt="chat-image"
+                    className="rounded-xl max-h-72 object-cover border border-white/20 mb-2 cursor-pointer"
+                    onClick={() => setModalImage(msg.image_url)}
+                  />
                 ) : null}
                 {msg.message_text ? <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p> : null}
               </div>
@@ -746,6 +750,23 @@ export default function ChatRoom({ params }) {
       </div>
 
       {/* ช่องพิมพ์ข้อความ */}
+      {/* Modal for image preview */}
+      {modalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModalImage(null)}>
+          <img
+            src={modalImage}
+            alt="preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl border-4 border-white shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-6 right-6 text-white text-3xl bg-black/60 rounded-full px-4 py-2 hover:bg-black/80"
+            onClick={() => setModalImage(null)}
+            aria-label="ปิดภาพ"
+          >✕</button>
+        </div>
+      )}
+
       <div className="p-4 bg-slate-900 border-t border-white/10">
         {requestInfo?.status === 'pending' ? (
           <form className="max-w-4xl mx-auto" onSubmit={sendMessage}>

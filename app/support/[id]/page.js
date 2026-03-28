@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function SupportRoomPage({ params }) {
   const [imagePreview, setImagePreview] = useState("");
+  const [modalImage, setModalImage] = useState(null);
   const getThaiSupportStatus = (rawStatus) => {
     const status = String(rawStatus || "").toLowerCase();
     if (status === "open") return "กำลังเปิดเคส";
@@ -205,9 +206,12 @@ export default function SupportRoomPage({ params }) {
                   }`}
                 >
                   {msg.image_url ? (
-                    <a href={msg.image_url} target="_blank" rel="noreferrer">
-                      <img src={msg.image_url} alt="chat-image" className="rounded-xl max-h-72 object-cover border border-white/20 mb-2" />
-                    </a>
+                    <img
+                      src={msg.image_url}
+                      alt="chat-image"
+                      className="rounded-xl max-h-72 object-cover border border-white/20 mb-2 cursor-pointer"
+                      onClick={() => setModalImage(msg.image_url)}
+                    />
                   ) : null}
                   {msg.message_text ? (
                     <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
@@ -228,6 +232,23 @@ export default function SupportRoomPage({ params }) {
           </div>
         )}
       </div>
+
+      {/* Modal for image preview */}
+      {modalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModalImage(null)}>
+          <img
+            src={modalImage}
+            alt="preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl border-4 border-white shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-6 right-6 text-white text-3xl bg-black/60 rounded-full px-4 py-2 hover:bg-black/80"
+            onClick={() => setModalImage(null)}
+            aria-label="ปิดภาพ"
+          >✕</button>
+        </div>
+      )}
 
       <div className="p-4 bg-slate-900 border-t border-white/10">
         {conversation?.status === "open" ? (
