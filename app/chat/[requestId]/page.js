@@ -196,7 +196,7 @@ export default function ChatRoom({ params }) {
     reader.readAsDataURL(file);
   };
 
-  // 4. ฟังก์ชันตัดสินใจ (Accept/Reject)
+  // 4. ฟังก์ชันตัดสินใจ (Reject / ถอนคำขอ) — การรับแลกใช้ negotiationAccept (สองฝ่าย)
   const handleDecision = async (newStatus) => {
     if (!confirm(`คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะเป็น ${getThaiRequestStatus(newStatus)}?`)) return;
 
@@ -207,10 +207,35 @@ export default function ChatRoom({ params }) {
         body: JSON.stringify({ status: newStatus })
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         alert(`ดำเนินการสำเร็จ!`);
-        fetchData(); // อัปเดตข้อมูลหน้าจอ
+        fetchData();
+      } else {
+        alert(data.error || "ดำเนินการไม่สำเร็จ");
       }
+    } catch (error) {
+      alert("เกิดข้อผิดพลาด");
+    }
+  };
+
+  const negotiationAccept = async () => {
+    if (!confirm("ยืนยันที่จะรับแลกในดีลนี้?")) return;
+    try {
+      const res = await fetch(`/api/requests/${requestId}/negotiate-accept`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "ดำเนินการไม่สำเร็จ");
+        return;
+      }
+      alert(
+        data.bothNegotiationAccepted
+          ? "ทั้งสองฝ่ายยืนยันแล้ว — ดีลได้รับการตอบรับ"
+          : "ยืนยันแล้ว รออีกฝ่ายกดรับแลก"
+      );
+      fetchData();
     } catch (error) {
       alert("เกิดข้อผิดพลาด");
     }
@@ -381,48 +406,88 @@ export default function ChatRoom({ params }) {
           </div>
         </div>
 
-        {/* ส่วนปุ่มกดสำหรับเจ้าของสินค้า */}
-        {requestInfo?.owner_email === session?.user?.email && requestInfo?.status === 'pending' && (
-          <div className="flex gap-2">
-            {String(requestInfo?.item_status || "").toLowerCase() !== "pending" ? (
-              <button
-                onClick={markItemAsNegotiating}
-                disabled={markingNegotiation}
-                className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-xl text-xs border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
-              >
-                {markingNegotiation ? "กำลังอัปเดต..." : "ตั้งโพสต์เป็นกำลังเจรจาก่อน"}
-              </button>
-            ) : (
-              <>
-                <button 
-                  onClick={() => handleDecision('accepted')} 
-                  className="bg-green-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs hover:bg-green-400 transition-all"
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 min-w-0">
+          {/* เจ้าของโพสต์: ตั้งกำลังเจรจา → รับแลก/ปฏิเสธ (รับแลกครบคู่ผ่าน negotiate-accept) */}
+          {requestInfo?.owner_email === session?.user?.email && requestInfo?.status === "pending" && (
+            <>
+              {String(requestInfo?.item_status || "").toLowerCase() !== "pending" ? (
+                <button
+                  onClick={markItemAsNegotiating}
+                  disabled={markingNegotiation}
+                  className="bg-blue-500/20 text-blue-300 px-4 py-2 rounded-xl text-xs border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
                 >
-                  รับแลก
+                  {markingNegotiation ? "กำลังอัปเดต..." : "ตั้งโพสต์เป็นกำลังเจรจาก่อน"}
                 </button>
-                <button 
-                  onClick={() => handleDecision('rejected')} 
-                  className="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl text-xs border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
-                >
-                  ปฏิเสธ
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          {(requestInfo?.status === "accepted" || requestInfo?.status === "completed") && String(requestInfo?.item_status || "").toLowerCase() !== "exchanged" && (
-            <button
-              onClick={confirmExchange}
-              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
-            >
-              ยืนยันแลกสำเร็จ
-            </button>
+              ) : (
+                <>
+                  {Number(requestInfo?.owner_confirmed) === 1 ? (
+                    <span className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-200">
+                      รอผู้ขอแลกยืนยัน
+                    </span>
+                  ) : (
+                    <button
+                      onClick={negotiationAccept}
+                      className="bg-green-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs hover:bg-green-400 transition-all"
+                    >
+                      รับแลก
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDecision("rejected")}
+                    className="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl text-xs border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    ปฏิเสธ
+                  </button>
+                </>
+              )}
+            </>
           )}
 
-          {String(requestInfo?.item_status || "").toLowerCase() === "exchanged" && requestInfo?.requester_email === session?.user?.email && (
-            Number(requestInfo?.exchanged_like_given) === 1 ? (
+          {/* ผู้ขอแลก */}
+          {requestInfo?.requester_email === session?.user?.email && requestInfo?.status === "pending" && (
+            <>
+              {String(requestInfo?.item_status || "").toLowerCase() !== "pending" ? (
+                <span className="px-3 py-2 rounded-xl text-[10px] text-slate-400 max-w-[11rem] text-right leading-snug border border-white/10">
+                  รอเจ้าของตั้งโพสต์เป็นกำลังเจรจา
+                </span>
+              ) : (
+                <>
+                  {Number(requestInfo?.requester_confirmed) === 1 ? (
+                    <span className="px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-200">
+                      รอเจ้าของยืนยัน
+                    </span>
+                  ) : (
+                    <button
+                      onClick={negotiationAccept}
+                      className="bg-green-500 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs hover:bg-green-400 transition-all"
+                    >
+                      รับแลก
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDecision("rejected")}
+                    className="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl text-xs border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    ถอนคำขอ
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {(requestInfo?.status === "accepted" || requestInfo?.status === "completed") &&
+            String(requestInfo?.item_status || "").toLowerCase() !== "exchanged" && (
+              <button
+                onClick={confirmExchange}
+                className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+              >
+                ยืนยันแลกสำเร็จ
+              </button>
+            )}
+
+          {String(requestInfo?.item_status || "").toLowerCase() === "exchanged" &&
+            requestInfo?.requester_email === session?.user?.email &&
+            (Number(requestInfo?.exchanged_like_given) === 1 ? (
               <span className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-pink-500/30 bg-pink-500/10 text-pink-300">
                 ❤ กดหัวใจแล้ว
               </span>
@@ -434,8 +499,7 @@ export default function ChatRoom({ params }) {
               >
                 {likingOwner ? "กำลังกดหัวใจ..." : "❤ กดหัวใจให้เจ้าของโพสต์"}
               </button>
-            )
-          )}
+            ))}
 
           {requestInfo?.status === "completed" && (
             <button
