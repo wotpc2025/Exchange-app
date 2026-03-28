@@ -799,9 +799,9 @@ function MyReviewsSection({ reviews, reviewsLoaded }) {
                 </div>
               </div>
               <div className="flex gap-4 mt-2 text-[10px] text-slate-400">
-                <span>⏰ {r.punctuality}/5</span>
-                <span>📦 {r.accuracy}/5</span>
-                <span>🤝 {r.politeness}/5</span>
+                <span>ความตรงต่อเวลา ⏰ {r.punctuality}/5</span>
+                <span>สภาพสินค้า 📦 {r.accuracy}/5</span>
+                <span>มารยาท 🤝 {r.politeness}/5</span>
               </div>
               {r.comment && (
                 <p className="mt-2 text-xs text-slate-300 italic">"{r.comment}"</p>

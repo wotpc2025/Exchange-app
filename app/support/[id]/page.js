@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function SupportRoomPage({ params }) {
+  const [imagePreview, setImagePreview] = useState("");
   const getThaiSupportStatus = (rawStatus) => {
     const status = String(rawStatus || "").toLowerCase();
     if (status === "open") return "กำลังเปิดเคส";
@@ -53,17 +54,33 @@ export default function SupportRoomPage({ params }) {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() && !imagePreview) return;
     const text = input;
+    const image = imagePreview;
     setInput("");
-
+    setImagePreview("");
     await fetch(`/api/support/conversations/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message_text: text }),
+      body: JSON.stringify({ message_text: text, image_data: image || null }),
     });
-
     await fetchData();
+  };
+
+  const onPickImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("รูปภาพใหญ่เกินไป (จำกัด 5MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        setImagePreview(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const closeCase = async () => {
@@ -210,6 +227,22 @@ export default function SupportRoomPage({ params }) {
       <div className="p-4 bg-slate-900 border-t border-white/10">
         {conversation?.status === "open" ? (
           <form className="flex gap-2 max-w-4xl mx-auto" onSubmit={sendMessage}>
+            {imagePreview && (
+              <div className="mb-2 relative inline-block">
+                <img src={imagePreview} alt="preview" className="h-24 rounded-xl border border-white/20 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setImagePreview("")}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <label className="bg-slate-800 border-none rounded-2xl px-4 py-3 cursor-pointer hover:bg-slate-700 transition-all">
+              📷
+              <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+            </label>
             <input
               className="flex-1 bg-slate-800 border-none rounded-2xl px-5 py-3 outline-none focus:ring-2 ring-amber-500/50 transition-all text-sm"
               placeholder="พิมพ์ข้อความ..."
@@ -226,19 +259,24 @@ export default function SupportRoomPage({ params }) {
           </div>
         )}
       </div>
-
-      {showCloseModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md glass-card rounded-[24px] border border-white/10 bg-slate-900/70 backdrop-blur-md p-6">
-            <h3 className="text-lg font-black text-amber-300">
-              จบเคสนี้ใช่ไหม?
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">
-              เมื่อจบเคสแล้ว ห้องจะถูกปิด (ยังดูประวัติย้อนหลังได้) และจะนับเป็นเคสที่แอดมินช่วยประสานงานสำเร็จ
-            </p>
-
-            <div className="mt-4 p-4 rounded-2xl border border-white/10 bg-slate-950/40">
-              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <div
+                  className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-lg ${
+                    msg.sender_email === session?.user?.email
+                      ? "bg-amber-500 text-slate-950 rounded-tr-none"
+                      : msg.sender_role === "admin"
+                      ? "bg-blue-500/20 text-white border border-blue-500/30 rounded-tl-none"
+                      : "bg-slate-800 text-white rounded-tl-none"
+                  }`}
+                >
+                  {msg.image_url ? (
+                    <a href={msg.image_url} target="_blank" rel="noreferrer">
+                      <img src={msg.image_url} alt="chat-image" className="rounded-xl max-h-72 object-cover border border-white/20 mb-2" />
+                    </a>
+                  ) : null}
+                  {msg.message_text ? (
+                    <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
+                  ) : null}
+                </div>
                 <input
                   type="checkbox"
                   className="mt-1"
