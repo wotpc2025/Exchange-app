@@ -204,9 +204,14 @@ export default function SupportRoomPage({ params }) {
                       : "bg-slate-800 text-white rounded-tl-none"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
-                    {msg.message_text}
-                  </p>
+                  {msg.image_url ? (
+                    <a href={msg.image_url} target="_blank" rel="noreferrer">
+                      <img src={msg.image_url} alt="chat-image" className="rounded-xl max-h-72 object-cover border border-white/20 mb-2" />
+                    </a>
+                  ) : null}
+                  {msg.message_text ? (
+                    <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
+                  ) : null}
                 </div>
                 <span className="text-[9px] text-slate-500 mt-1">
                   {new Date(msg.created_at).toLocaleTimeString([], {
@@ -259,65 +264,6 @@ export default function SupportRoomPage({ params }) {
           </div>
         )}
       </div>
-                <div
-                  className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-lg ${
-                    msg.sender_email === session?.user?.email
-                      ? "bg-amber-500 text-slate-950 rounded-tr-none"
-                      : msg.sender_role === "admin"
-                      ? "bg-blue-500/20 text-white border border-blue-500/30 rounded-tl-none"
-                      : "bg-slate-800 text-white rounded-tl-none"
-                  }`}
-                >
-                  {msg.image_url ? (
-                    <a href={msg.image_url} target="_blank" rel="noreferrer">
-                      <img src={msg.image_url} alt="chat-image" className="rounded-xl max-h-72 object-cover border border-white/20 mb-2" />
-                    </a>
-                  ) : null}
-                  {msg.message_text ? (
-                    <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
-                  ) : null}
-                </div>
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={likeAdmin}
-                  onChange={(e) => setLikeAdmin(e.target.checked)}
-                />
-                <div className="min-w-0">
-                  <div className="font-bold text-slate-200">
-                    กดไลก์ให้แอดมินที่คุยด้วย
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            {closeError ? (
-              <div className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3">
-                {closeError}
-              </div>
-            ) : null}
-
-            <div className="mt-5 flex gap-2 justify-end">
-              <button
-                type="button"
-                className="px-4 py-2 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5"
-                disabled={closing}
-                onClick={() => setShowCloseModal(false)}
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black disabled:opacity-60"
-                disabled={closing}
-                onClick={closeCase}
-              >
-                {closing ? "กำลังปิด..." : "ยืนยันจบเคส"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 } 
