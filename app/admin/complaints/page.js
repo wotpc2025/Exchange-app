@@ -156,9 +156,9 @@ export default function AdminComplaintsPage() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${
+                            className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${
                               isClosed
-                                ? "bg-slate-500/10 text-slate-300 border-white/10"
+                                ? "bg-slate-600/15 text-slate-200 border-slate-500/40"
                                 : "bg-green-500/10 text-green-300 border-green-500/35"
                             }`}
                           >
@@ -237,7 +237,7 @@ export default function AdminComplaintsPage() {
                         <button
                           disabled={isClosed || isBusy}
                           onClick={() => closeCase(c)}
-                          className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                          className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-green-600/50 bg-green-600/15 text-green-100 hover:bg-green-600 hover:text-white transition-all disabled:opacity-60"
                         >
                           {isClosed ? "ปิดแล้ว" : isBusy ? "กำลังปิด..." : "ปิดเคส"}
                         </button>

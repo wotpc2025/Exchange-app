@@ -23,9 +23,9 @@ function severityLabel(sev) {
 }
 
 function severityClass(sev) {
-  if (sev === "high") return "bg-red-500/10 text-red-300 border-red-500/30";
-  if (sev === "medium") return "bg-amber-500/10 text-amber-300 border-amber-500/30";
-  return "bg-slate-500/10 text-slate-300 border-white/10";
+  if (sev === "high") return "bg-red-500/10 text-red-300 border-red-500/35";
+  if (sev === "medium") return "bg-orange-500/10 text-orange-300 border-orange-500/35";
+  return "bg-slate-500/10 text-slate-300 border-slate-500/35";
 }
 
 function normalizeReportStatus(s) {
@@ -44,8 +44,9 @@ function reportStatusLabel(s) {
 function statusClass(status) {
   const v = normalizeReportStatus(status);
   if (v === "open") return "bg-green-500/10 text-green-300 border-green-500/35";
-  if (v === "reviewed") return "bg-blue-500/10 text-blue-300 border-blue-500/30";
-  return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
+  if (v === "reviewed") return "bg-blue-500/10 text-blue-300 border-blue-500/35";
+  if (v === "closed") return "bg-slate-600/15 text-slate-200 border-slate-500/40";
+  return "bg-slate-600/15 text-slate-200 border-slate-500/40";
 }
 
 export default function AdminReportsPage() {
@@ -383,7 +384,7 @@ export default function AdminReportsPage() {
                           <span className="text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide bg-red-500/10 text-red-300 border-red-500/30">
                             ใบแดง: {r.reported_red_count || 0}
                           </span>
-                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${r.reported_active_ban_type ? "bg-purple-500/10 text-purple-300 border-purple-500/30" : "bg-green-500/10 text-green-300 border-green-500/30"}`}>
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${r.reported_active_ban_type ? "bg-red-950/50 text-red-200 border-red-900/55" : "bg-green-500/10 text-green-300 border-green-500/35"}`}>
                             {r.reported_active_ban_type
                               ? r.reported_active_ban_type === "permanent"
                                 ? "แบนถาวร"
@@ -402,14 +403,14 @@ export default function AdminReportsPage() {
                           <button
                             disabled={isBusy}
                             onClick={() => updateStatus(r.id, "reviewed")}
-                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-blue-500/30 text-blue-200 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
+                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-blue-500/40 bg-blue-500/10 text-blue-100 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
                           >
                             ทำเครื่องหมายกำลังตรวจสอบ
                           </button>
                           <button
                             disabled={isBusy}
                             onClick={() => updateStatus(r.id, "closed")}
-                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-green-600/50 bg-green-600/15 text-green-100 hover:bg-green-600 hover:text-white transition-all disabled:opacity-60"
                           >
                             ปิดเคส
                           </button>
@@ -419,21 +420,21 @@ export default function AdminReportsPage() {
                           <button
                             disabled={isBusy}
                             onClick={() => issueWarning(r, "yellow")}
-                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 transition-all disabled:opacity-60"
                           >
                             ออกใบเหลือง
                           </button>
                           <button
                             disabled={isBusy}
                             onClick={() => issueWarning(r, "red")}
-                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-60"
+                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-60"
                           >
                             ออกใบแดง
                           </button>
                           <button
                             disabled={isBusy}
                             onClick={() => banUser(r)}
-                            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-purple-500/30 text-purple-200 hover:bg-purple-500 hover:text-white transition-all disabled:opacity-60"
+                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                           >
                             แบน
                           </button>
@@ -441,7 +442,7 @@ export default function AdminReportsPage() {
                             <button
                               disabled={isBusy}
                               onClick={() => unbanUser(r)}
-                              className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-white/10 text-slate-200 hover:bg-white/5 transition-all disabled:opacity-60"
+                              className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-slate-500/40 text-slate-200 hover:bg-white/10 transition-all disabled:opacity-60"
                             >
                               ปลดแบน
                             </button>
@@ -453,21 +454,21 @@ export default function AdminReportsPage() {
                             <button
                               disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
                               onClick={() => banPreset(r, "7d")}
-                              className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-500/30 text-purple-200 hover:bg-purple-500 hover:text-white transition-all disabled:opacity-60"
+                              className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                             >
                               แบน 7 วัน
                             </button>
                             <button
                               disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
                               onClick={() => banPreset(r, "30d")}
-                              className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-500/30 text-purple-200 hover:bg-purple-500 hover:text-white transition-all disabled:opacity-60"
+                              className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                             >
                               แบน 30 วัน
                             </button>
                             <button
                               disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
                               onClick={() => banPreset(r, "permanent")}
-                              className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-fuchsia-500/30 text-fuchsia-200 hover:bg-fuchsia-500 hover:text-white transition-all disabled:opacity-60"
+                              className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                             >
                               แบนถาวร
                             </button>

@@ -228,10 +228,10 @@ export default function AdminUsersPage() {
                             ใบแดง: {u.red_count || 0}
                           </span>
                           <span
-                            className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${
+                            className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${
                               isBanned
-                                ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
-                                : "bg-green-500/10 text-green-300 border-green-500/30"
+                                ? "bg-red-950/50 text-red-200 border-red-900/55"
+                                : "bg-green-500/10 text-green-300 border-green-500/35"
                             }`}
                           >
                             {bannedLabel}
@@ -249,14 +249,14 @@ export default function AdminUsersPage() {
                       <button
                         disabled={isBusy}
                         onClick={() => giveYellow(u)}
-                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                        className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 transition-all disabled:opacity-60"
                       >
                         ให้ใบเหลือง
                       </button>
                       <button
                         disabled={isBusy}
                         onClick={() => giveRed(u)}
-                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-60"
+                        className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-60"
                       >
                         ให้ใบแดง
                       </button>
@@ -264,7 +264,7 @@ export default function AdminUsersPage() {
                       <button
                         disabled={isBusy}
                         onClick={() => banUser(u)}
-                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-purple-500/30 text-purple-200 hover:bg-purple-500 hover:text-white transition-all disabled:opacity-60"
+                        className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                       >
                         แบน
                       </button>
@@ -273,7 +273,7 @@ export default function AdminUsersPage() {
                         <button
                           disabled={isBusy}
                           onClick={() => unbanUser(u)}
-                          className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-white/10 text-slate-200 hover:bg-white/5 transition-all disabled:opacity-60"
+                          className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-slate-500/40 text-slate-200 hover:bg-white/10 transition-all disabled:opacity-60"
                         >
                           ปลดแบน
                         </button>
