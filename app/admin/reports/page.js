@@ -463,7 +463,7 @@ export default function AdminReportsPage() {
                               onClick={() => banPreset(r, "30d")}
                               className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                             >
-                              แบน 30 วัน
+                              แบน 15 วัน
                             </button>
                             <button
                               disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
