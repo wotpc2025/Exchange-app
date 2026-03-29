@@ -94,7 +94,7 @@ export default function AdminSupportListPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${
+                          className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${
                             c.status === "open"
                               ? "bg-green-500/10 text-green-400 border-green-500/20"
                               : "bg-slate-500/10 text-slate-300 border-white/10"
@@ -118,7 +118,7 @@ export default function AdminSupportListPage() {
                         </span>
                         {c.admin_email && (
                           <span className="text-[10px] text-blue-300 border border-blue-500/30 bg-blue-500/10 px-2 py-1 rounded-full">
-                            admin:{" "}
+                            แอดมิน:{" "}
                             {c.admin_id ? (
                               <Link
                                 href={`/users/${c.admin_id}`}
@@ -140,10 +140,10 @@ export default function AdminSupportListPage() {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-[10px] text-slate-500 uppercase">
+                      <p className="text-[10px] text-slate-500">
                         {c.last_message_at
-                          ? new Date(c.last_message_at).toLocaleString()
-                          : new Date(c.created_at).toLocaleString()}
+                          ? new Date(c.last_message_at).toLocaleString("th-TH")
+                          : new Date(c.created_at).toLocaleString("th-TH")}
                       </p>
                       <p className="text-xs text-amber-400 font-bold mt-1">
                         เปิดห้อง →

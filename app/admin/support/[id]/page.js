@@ -89,11 +89,16 @@ export default function AdminSupportRoomPage({ params }) {
                 conversation?.student_name || conversation?.student_email
               )}
             </h2>
-            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
-              Status: {conversation?.status}{" "}
+            <p className="text-[10px] font-bold tracking-wide text-slate-400">
+              สถานะ:{" "}
+              {conversation?.status === "open"
+                ? "เปิดเคส"
+                : conversation?.status === "closed"
+                  ? "ปิดเคสแล้ว"
+                  : conversation?.status || "—"}{" "}
               {conversation?.admin_email && (
                 <>
-                  · admin:{" "}
+                  · แอดมิน:{" "}
                   {conversation.admin_id ? (
                     <Link
                       href={`/users/${conversation.admin_id}`}
@@ -109,7 +114,7 @@ export default function AdminSupportRoomPage({ params }) {
             </p>
           </div>
         </div>
-        <div className="text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest border border-white/10 text-slate-400 bg-slate-950/30">
+        <div className="text-[10px] font-black px-4 py-2 rounded-xl tracking-wide border border-white/10 text-slate-400 bg-slate-950/30">
           {conversation?.status === "open"
             ? "รอให้นักศึกษาจบเคส"
             : "เคสถูกปิดแล้ว"}

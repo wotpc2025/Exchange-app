@@ -221,11 +221,11 @@ export default function AdminUsersPage() {
                           </p>
                         </Link>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest bg-yellow-500/10 text-yellow-300 border-yellow-500/30">
-                            Yellow: {u.yellow_count || 0}
+                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide bg-yellow-500/10 text-yellow-300 border-yellow-500/30">
+                            ใบเหลือง: {u.yellow_count || 0}
                           </span>
-                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest bg-red-500/10 text-red-300 border-red-500/30">
-                            Red: {u.red_count || 0}
+                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide bg-red-500/10 text-red-300 border-red-500/30">
+                            ใบแดง: {u.red_count || 0}
                           </span>
                           <span
                             className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${

@@ -28,9 +28,23 @@ function severityClass(sev) {
   return "bg-slate-500/10 text-slate-300 border-white/10";
 }
 
+function normalizeReportStatus(s) {
+  return String(s ?? "open").trim().toLowerCase();
+}
+
+/** แสดงในป้าย — ค่าใน DB ยังเป็น open / reviewed / closed */
+function reportStatusLabel(s) {
+  const v = normalizeReportStatus(s);
+  if (v === "open") return "เปิด";
+  if (v === "reviewed") return "กำลังตรวจสอบ";
+  if (v === "closed") return "ปิดเคส";
+  return s ? String(s) : "เปิด";
+}
+
 function statusClass(status) {
-  if (status === "open") return "bg-red-500/10 text-red-300 border-red-500/30";
-  if (status === "reviewed") return "bg-blue-500/10 text-blue-300 border-blue-500/30";
+  const v = normalizeReportStatus(status);
+  if (v === "open") return "bg-red-500/10 text-red-300 border-red-500/30";
+  if (v === "reviewed") return "bg-blue-500/10 text-blue-300 border-blue-500/30";
   return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
 }
 
@@ -69,7 +83,7 @@ export default function AdminReportsPage() {
     const term = q.trim().toLowerCase();
     return rows.filter((r) => {
       const sev = getSeverity(r);
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (statusFilter !== "all" && normalizeReportStatus(r.status) !== statusFilter) return false;
       if (severityFilter !== "all" && sev !== severityFilter) return false;
 
       if (!term) return true;
@@ -77,6 +91,7 @@ export default function AdminReportsPage() {
         r.reason,
         r.evidence_text,
         r.status,
+        reportStatusLabel(r.status),
         r.reporter_email,
         r.reporter_name,
         r.reported_email,
@@ -278,9 +293,9 @@ export default function AdminReportsPage() {
               className="bg-slate-900/50 border border-white/10 rounded-2xl py-3 px-4 outline-none focus:border-amber-500/50 transition-all text-white"
             >
               <option value="all">ทุกสถานะ</option>
-              <option value="open">open</option>
-              <option value="reviewed">reviewed</option>
-              <option value="closed">closed</option>
+              <option value="open">เปิด</option>
+              <option value="reviewed">กำลังตรวจสอบ</option>
+              <option value="closed">ปิดเคส</option>
             </select>
             <select
               value={severityFilter}
@@ -313,10 +328,10 @@ export default function AdminReportsPage() {
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${statusClass(r.status)}`}>
-                            {r.status || "open"}
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${statusClass(r.status)}`}>
+                            {reportStatusLabel(r.status)}
                           </span>
-                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${severityClass(severity)}`}>
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${severityClass(severity)}`}>
                             ความรุนแรง: {severityLabel(severity)}
                           </span>
                           <span className="text-xs text-slate-500">#{r.id}</span>
@@ -362,13 +377,13 @@ export default function AdminReportsPage() {
                         ) : null}
 
                         <div className="flex flex-wrap gap-2 mt-3">
-                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest bg-yellow-500/10 text-yellow-300 border-yellow-500/30">
-                            Yellow: {r.reported_yellow_count || 0}
+                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide bg-yellow-500/10 text-yellow-300 border-yellow-500/30">
+                            ใบเหลือง: {r.reported_yellow_count || 0}
                           </span>
-                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest bg-red-500/10 text-red-300 border-red-500/30">
-                            Red: {r.reported_red_count || 0}
+                          <span className="text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide bg-red-500/10 text-red-300 border-red-500/30">
+                            ใบแดง: {r.reported_red_count || 0}
                           </span>
-                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${r.reported_active_ban_type ? "bg-purple-500/10 text-purple-300 border-purple-500/30" : "bg-green-500/10 text-green-300 border-green-500/30"}`}>
+                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border tracking-wide ${r.reported_active_ban_type ? "bg-purple-500/10 text-purple-300 border-purple-500/30" : "bg-green-500/10 text-green-300 border-green-500/30"}`}>
                             {r.reported_active_ban_type
                               ? r.reported_active_ban_type === "permanent"
                                 ? "แบนถาวร"
@@ -379,7 +394,7 @@ export default function AdminReportsPage() {
                       </div>
 
                       <div className="shrink-0 flex flex-col items-end gap-2">
-                        <p className="text-[10px] text-slate-500 uppercase">
+                        <p className="text-[10px] text-slate-500">
                           {r.created_at ? new Date(r.created_at).toLocaleString("th-TH") : ""}
                         </p>
 
@@ -389,7 +404,7 @@ export default function AdminReportsPage() {
                             onClick={() => updateStatus(r.id, "reviewed")}
                             className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-blue-500/30 text-blue-200 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
                           >
-                            ทำเครื่องหมาย reviewed
+                            ทำเครื่องหมายกำลังตรวจสอบ
                           </button>
                           <button
                             disabled={isBusy}
