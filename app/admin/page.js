@@ -94,37 +94,37 @@ export default function AdminDashboardPage() {
     () => [
       {
         href: "/admin/support",
-        title: "กล่องข้อความ Student",
+        title: "💬กล่องข้อความ Student",
         description: "ดูและตอบคำถาม / ปัญหาจากนักศึกษาแบบแชท",
         count: counts.support,
       },
       {
         href: "/admin/announcements",
-        title: "อนุมัติประกาศ",
+        title: "📋อนุมัติประกาศ",
         description: "ตรวจสอบ / อนุมัติ / ไม่อนุมัติ / ถอดประกาศที่มีปัญหา",
         count: counts.announcements,
       },
       {
         href: "/admin/users",
-        title: "จัดการผู้ใช้",
+        title: "🪪จัดการผู้ใช้",
         description: "ใบเหลือง / ใบแดง / แบนชั่วคราวหรือถาวรสำหรับ Student",
         count: counts.users,
       },
       {
         href: "/admin/complaints",
-        title: "รายการร้องเรียน",
+        title: "📢รายการร้องเรียนประกาศ",
         description: "ตรวจสอบหลักฐาน และปิดเคสการร้องเรียนประกาศ",
         count: counts.complaints,
       },
       {
         href: "/admin/reports",
-        title: "รายงานผู้ใช้",
+        title: "⚖️รายงานผู้ใช้",
         description: "ตรวจสอบรายงานผู้ใช้ และออกใบเหลือง/ใบแดงจากเคสเดียวกัน",
         count: counts.reports,
       },
       {
         href: "/admin/audit-logs",
-        title: "Audit Logs",
+        title: "🔍Audit Logs",
         description: "ตรวจสอบประวัติการดำเนินการของแอดมินย้อนหลัง",
         count: counts.auditLogsToday,
       },
