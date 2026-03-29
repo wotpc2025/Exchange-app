@@ -59,6 +59,13 @@ export default function AdminReportsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [busyId, setBusyId] = useState(null);
+  /** Modal ลงโทษ */
+  const [punishModal, setPunishModal] = useState(null);
+  const [punishKind, setPunishKind] = useState("yellow");
+  const [punishNote, setPunishNote] = useState("");
+  const [customBanType, setCustomBanType] = useState("temporary");
+  const [customAmount, setCustomAmount] = useState("7");
+  const [customUnit, setCustomUnit] = useState("day");
 
   const load = async () => {
     try {
@@ -79,6 +86,15 @@ export default function AdminReportsPage() {
     }
     load();
   }, [session, status]);
+
+  useEffect(() => {
+    if (!punishModal) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setPunishModal(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [punishModal]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -124,10 +140,15 @@ export default function AdminReportsPage() {
     }
   };
 
-  const issueWarning = async (report, type) => {
-    const defaultReason = report?.reason ? String(report.reason).slice(0, 300) : "รายงานพฤติกรรมไม่เหมาะสม";
-    const reason = prompt(`เหตุผล${type === "yellow" ? "ใบเหลือง" : "ใบแดง"}:`, defaultReason);
-    if (reason === null) return;
+  const defaultWarnReason = (report) =>
+    report?.reason ? String(report.reason).slice(0, 300) : "รายงานพฤติกรรมไม่เหมาะสม";
+
+  /** @returns {Promise<boolean>} */
+  const issueWarning = async (report, type, reasonText) => {
+    const reason =
+      reasonText != null && String(reasonText).trim() !== ""
+        ? String(reasonText).trim().slice(0, 400)
+        : defaultWarnReason(report);
 
     setBusyId(report.id);
     try {
@@ -139,7 +160,7 @@ export default function AdminReportsPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.error || "ให้ใบเตือนไม่สำเร็จ");
-        return;
+        return false;
       }
 
       await fetch(`/api/admin/reports/${report.id}`, {
@@ -150,61 +171,31 @@ export default function AdminReportsPage() {
 
       await load();
       alert(type === "yellow" ? "ออกใบเหลืองเรียบร้อย" : "ออกใบแดงเรียบร้อย");
+      return true;
     } finally {
       setBusyId(null);
     }
   };
 
-  const banUser = async (report) => {
-    if ((Number(report?.reported_red_count) || 0) < 1) {
-      alert("ผู้ใช้นี้ยังไม่มีใบแดง จึงยังแบนไม่ได้");
-      return;
-    }
+  /** @returns {Promise<boolean>} */
+  const banPreset = async (report, preset, reasonText) => {
+    const fallback = report?.reason ? String(report.reason).slice(0, 400) : "";
+    const reason =
+      reasonText != null && String(reasonText).trim() !== ""
+        ? String(reasonText).trim().slice(0, 400)
+        : fallback;
 
-    const type = prompt("พิมพ์ประเภทแบน: temporary หรือ permanent", "temporary");
-    if (type !== "temporary" && type !== "permanent") return;
+    let amount = 7;
+    if (preset === "7d") amount = 7;
+    else if (preset === "15d") amount = 15;
+    else if (preset === "30d") amount = 30;
 
-    let amount;
-    let unit;
-    if (type === "temporary") {
-      amount = prompt("จำนวน (ตัวเลข):", "7");
-      unit = prompt("หน่วย: day หรือ month หรือ year", "day");
-      if (!amount || !unit) return;
-    }
-
-    const reason = prompt("เหตุผลแบน (ไม่ใส่ก็ได้):", report?.reason || "") || "";
-
-    setBusyId(report.id);
-    try {
-      const res = await fetch(`/api/admin/users/${report.reported_user_id}/ban`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ban_type: type,
-          amount,
-          unit,
-          reason,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || "แบนไม่สำเร็จ");
-        return;
-      }
-      await load();
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const banPreset = async (report, preset) => {
-    const reason = prompt("เหตุผลแบน (ไม่ใส่ก็ได้):", report?.reason || "") || "";
     const payload =
       preset === "permanent"
         ? { ban_type: "permanent", reason }
         : {
             ban_type: "temporary",
-            amount: preset === "7d" ? 7 : 30,
+            amount,
             unit: "day",
             reason,
           };
@@ -219,11 +210,115 @@ export default function AdminReportsPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.error || "แบนไม่สำเร็จ");
-        return;
+        return false;
       }
       await load();
+      return true;
     } finally {
       setBusyId(null);
+    }
+  };
+
+  /** แบนแบบกำหนดเอง (ชั่วคราว/ถาวร + จำนวน) — @returns {Promise<boolean>} */
+  const executeCustomBan = async (report, reasonText) => {
+    if ((Number(report?.reported_red_count) || 0) < 1) {
+      alert("ผู้ใช้นี้ยังไม่มีใบแดง จึงยังแบนไม่ได้");
+      return false;
+    }
+    const fallback = report?.reason ? String(report.reason).slice(0, 400) : "";
+    const reason =
+      reasonText != null && String(reasonText).trim() !== ""
+        ? String(reasonText).trim().slice(0, 400)
+        : fallback;
+
+    const body =
+      customBanType === "permanent"
+        ? { ban_type: "permanent", reason }
+        : {
+            ban_type: "temporary",
+            amount: Number(customAmount),
+            unit: customUnit,
+            reason,
+          };
+
+    if (customBanType === "temporary") {
+      if (!Number.isFinite(body.amount) || body.amount < 1) {
+        alert("ระบุจำนวนระยะเวลาให้ถูกต้อง");
+        return false;
+      }
+    }
+
+    setBusyId(report.id);
+    try {
+      const res = await fetch(`/api/admin/users/${report.reported_user_id}/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "แบนไม่สำเร็จ");
+        return false;
+      }
+      await load();
+      return true;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openPunishModal = (report) => {
+    setPunishModal(report);
+    setPunishKind("yellow");
+    setPunishNote("");
+    setCustomBanType("temporary");
+    setCustomAmount("7");
+    setCustomUnit("day");
+  };
+
+  const submitPunishModal = async () => {
+    if (!punishModal) return;
+    const report = punishModal;
+    const note = punishNote.trim();
+    const redOk = (Number(report?.reported_red_count) || 0) >= 1;
+
+    let ok = false;
+    if (punishKind.startsWith("ban_") || punishKind === "ban_custom") {
+      if (!redOk) {
+        alert("ผู้ใช้นี้ยังไม่มีใบแดง จึงยังแบนไม่ได้");
+        return;
+      }
+    }
+
+    switch (punishKind) {
+      case "yellow":
+        ok = await issueWarning(report, "yellow", note || undefined);
+        break;
+      case "red":
+        ok = await issueWarning(report, "red", note || undefined);
+        break;
+      case "ban_7d":
+        ok = await banPreset(report, "7d", note);
+        break;
+      case "ban_15d":
+        ok = await banPreset(report, "15d", note);
+        break;
+      case "ban_30d":
+        ok = await banPreset(report, "30d", note);
+        break;
+      case "ban_perm":
+        ok = await banPreset(report, "permanent", note);
+        break;
+      case "ban_custom":
+        ok = await executeCustomBan(report, note);
+        break;
+      default:
+        return;
+    }
+
+    if (ok) {
+      setPunishModal(null);
+      setPunishNote("");
     }
   };
 
@@ -417,29 +512,22 @@ export default function AdminReportsPage() {
                         </div>
 
                         <div className="flex flex-wrap justify-end gap-2">
-                          <button
-                            disabled={isBusy}
-                            onClick={() => issueWarning(r, "yellow")}
-                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 transition-all disabled:opacity-60"
-                          >
-                            ออกใบเหลือง
-                          </button>
-                          <button
-                            disabled={isBusy}
-                            onClick={() => issueWarning(r, "red")}
-                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-60"
-                          >
-                            ออกใบแดง
-                          </button>
-                          <button
-                            disabled={isBusy}
-                            onClick={() => banUser(r)}
-                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
-                          >
-                            แบน
-                          </button>
+                          {!r.reported_active_ban_type ? (
+                            <button
+                              type="button"
+                              disabled={isBusy}
+                              onClick={() => openPunishModal(r)}
+                              className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                            >
+                              ดำเนินการลงโทษ
+                              <span className="block text-[9px] font-normal text-slate-500 mt-0.5 tracking-normal">
+                                Take action
+                              </span>
+                            </button>
+                          ) : null}
                           {r.reported_active_ban_type ? (
                             <button
+                              type="button"
                               disabled={isBusy}
                               onClick={() => unbanUser(r)}
                               className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-slate-500/40 text-slate-200 hover:bg-white/10 transition-all disabled:opacity-60"
@@ -448,32 +536,6 @@ export default function AdminReportsPage() {
                             </button>
                           ) : null}
                         </div>
-
-                        {!r.reported_active_ban_type ? (
-                          <div className="flex flex-wrap justify-end gap-2">
-                            <button
-                              disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
-                              onClick={() => banPreset(r, "7d")}
-                              className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
-                            >
-                              แบน 7 วัน
-                            </button>
-                            <button
-                              disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
-                              onClick={() => banPreset(r, "30d")}
-                              className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
-                            >
-                              แบน 15 วัน
-                            </button>
-                            <button
-                              disabled={isBusy || (Number(r?.reported_red_count) || 0) < 1}
-                              onClick={() => banPreset(r, "permanent")}
-                              className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
-                            >
-                              แบนถาวร
-                            </button>
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -483,6 +545,108 @@ export default function AdminReportsPage() {
           )}
         </div>
       </div>
+
+      {punishModal ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="punish-modal-title"
+          onClick={() => setPunishModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl shadow-black/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="punish-modal-title" className="text-lg font-black text-amber-400">
+              ดำเนินการลงโทษ
+            </h2>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Take action</p>
+            <p className="text-xs text-slate-400 mt-3">
+              ผู้ถูกรายงาน:{" "}
+              <span className="text-slate-200">
+                {punishModal.reported_name || punishModal.reported_email || `user #${punishModal.reported_user_id}`}
+              </span>
+            </p>
+
+            <label className="block text-xs font-bold text-slate-400 mt-4">ประเภทการลงโทษ</label>
+            <select
+              value={punishKind}
+              onChange={(e) => setPunishKind(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950/80 py-2.5 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+            >
+              <option value="yellow">ออกใบเหลือง</option>
+              <option value="red">ออกใบแดง</option>
+              <option value="ban_7d">แบน 7 วัน (ต้องมีใบแดงก่อน)</option>
+              <option value="ban_15d">แบน 15 วัน</option>
+              <option value="ban_30d">แบน 30 วัน</option>
+              <option value="ban_perm">แบนถาวร</option>
+              <option value="ban_custom">แบนแบบกำหนดเอง</option>
+            </select>
+
+            {punishKind === "ban_custom" ? (
+              <div className="mt-3 space-y-2 rounded-xl border border-white/5 bg-slate-950/50 p-3">
+                <label className="block text-[10px] text-slate-500">รูปแบบแบน</label>
+                <select
+                  value={customBanType}
+                  onChange={(e) => setCustomBanType(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-slate-900 py-2 px-2 text-sm text-white outline-none"
+                >
+                  <option value="temporary">แบนชั่วคราว</option>
+                  <option value="permanent">แบนถาวร</option>
+                </select>
+                {customBanType === "temporary" ? (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <input
+                      type="number"
+                      min={1}
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      className="min-w-[5rem] flex-1 rounded-lg border border-white/10 bg-slate-900 py-2 px-2 text-sm text-white"
+                    />
+                    <select
+                      value={customUnit}
+                      onChange={(e) => setCustomUnit(e.target.value)}
+                      className="rounded-lg border border-white/10 bg-slate-900 py-2 px-2 text-sm text-white"
+                    >
+                      <option value="day">วัน</option>
+                      <option value="month">เดือน</option>
+                      <option value="year">ปี</option>
+                    </select>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <label className="block text-xs font-bold text-slate-400 mt-4">หมายเหตุ</label>
+            <textarea
+              value={punishNote}
+              onChange={(e) => setPunishNote(e.target.value)}
+              rows={3}
+              placeholder="ระบุเหตุผลหรือหมายเหตุ (ไม่บังคับ)"
+              className="mt-1 w-full resize-y rounded-xl border border-white/10 bg-slate-950/80 py-2 px-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-amber-500/50"
+            />
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPunishModal(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-slate-300 hover:bg-white/5"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={busyId === punishModal.id}
+                onClick={() => submitPunishModal()}
+                className="px-4 py-2 rounded-xl text-xs font-black border border-amber-500/50 bg-amber-500/20 text-amber-100 hover:bg-amber-500 hover:text-slate-950 transition-all disabled:opacity-50"
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
