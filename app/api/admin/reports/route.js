@@ -48,7 +48,6 @@ export async function GET() {
   let connection;
   try {
     connection = await db.getConnection();
-    await ensureUserReportsTable(connection);
 
     const rows = await fetchReportRows(connection);
     const ids = rows.map((r) => r.reported_user_id);
