@@ -477,9 +477,6 @@ export default function AdminReportsPage() {
                                 className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500 hover:text-slate-950 transition-all disabled:opacity-60"
                               >
                                 ดำเนินการลงโทษ
-                                <span className="block text-[9px] font-normal text-slate-500 mt-0.5 tracking-normal">
-                                  Take action
-                                </span>
                               </button>
                             ) : null}
                             {r.reported_active_ban_type ? (
