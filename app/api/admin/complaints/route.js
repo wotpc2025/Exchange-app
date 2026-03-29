@@ -15,6 +15,7 @@ export async function GET() {
               i.title AS item_title,
               i.owner_email,
               owner.id AS owner_id,
+              owner.name AS owner_name,
               u.name AS student_name,
               u.id AS student_id,
               closed.name AS closed_by_admin_name

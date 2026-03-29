@@ -139,10 +139,10 @@ export default function AdminAnnouncementsPage() {
                           href={`/users/${item.owner_id}`}
                           className="hover:underline underline-offset-2"
                         >
-                          {item.owner_email}
+                          {item.owner_name || item.owner_email}
                         </Link>
                       ) : (
-                        item.owner_email
+                        item.owner_name || item.owner_email
                       )}
                     </p>
                     <p className="text-[11px] text-slate-500">

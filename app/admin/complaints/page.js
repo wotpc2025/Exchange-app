@@ -54,6 +54,7 @@ export default function AdminComplaintsPage() {
         c.student_email,
         c.student_name,
         c.owner_email,
+        c.owner_name,
         c.reason,
         c.status,
       ]
@@ -191,10 +192,10 @@ export default function AdminComplaintsPage() {
                               href={`/users/${c.owner_id}`}
                               className="hover:underline underline-offset-2"
                             >
-                              {c.owner_email}
+                              {c.owner_name || c.owner_email}
                             </Link>
                           ) : (
-                            c.owner_email
+                            c.owner_name || c.owner_email
                           )}
                         </p>
 
