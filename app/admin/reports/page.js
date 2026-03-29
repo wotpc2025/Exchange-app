@@ -35,15 +35,15 @@ function normalizeReportStatus(s) {
 /** แสดงในป้าย — ค่าใน DB ยังเป็น open / reviewed / closed */
 function reportStatusLabel(s) {
   const v = normalizeReportStatus(s);
-  if (v === "open") return "เปิด";
+  if (v === "open") return "เปิดเคส";
   if (v === "reviewed") return "กำลังตรวจสอบ";
   if (v === "closed") return "ปิดเคส";
-  return s ? String(s) : "เปิด";
+  return s ? String(s) : "เปิดเคส";
 }
 
 function statusClass(status) {
   const v = normalizeReportStatus(status);
-  if (v === "open") return "bg-red-500/10 text-red-300 border-red-500/30";
+  if (v === "open") return "bg-green-500/10 text-green-300 border-green-500/35";
   if (v === "reviewed") return "bg-blue-500/10 text-blue-300 border-blue-500/30";
   return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
 }
@@ -293,7 +293,7 @@ export default function AdminReportsPage() {
               className="bg-slate-900/50 border border-white/10 rounded-2xl py-3 px-4 outline-none focus:border-amber-500/50 transition-all text-white"
             >
               <option value="all">ทุกสถานะ</option>
-              <option value="open">เปิด</option>
+              <option value="open">เปิดเคส</option>
               <option value="reviewed">กำลังตรวจสอบ</option>
               <option value="closed">ปิดเคส</option>
             </select>

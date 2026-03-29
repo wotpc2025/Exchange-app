@@ -159,7 +159,7 @@ export default function AdminComplaintsPage() {
                             className={`text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest ${
                               isClosed
                                 ? "bg-slate-500/10 text-slate-300 border-white/10"
-                                : "bg-red-500/10 text-red-300 border-red-500/30"
+                                : "bg-green-500/10 text-green-300 border-green-500/35"
                             }`}
                           >
                             {complaintStatusLabel(c.status)}
