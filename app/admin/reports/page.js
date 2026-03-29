@@ -460,11 +460,6 @@ export default function AdminReportsPage() {
                               <option value="closed">ปิดเคสแล้ว — แก้ไขไม่ได้</option>
                             )}
                           </select>
-                          {caseClosed ? (
-                            <p className="text-[10px] text-slate-500 text-right">
-                              ปิดเคสแล้ว — ไม่สามารถดำเนินการลงโทษหรือปลดแบนจากรายการนี้ได้
-                            </p>
-                          ) : null}
                         </div>
 
                         {!caseClosed ? (
