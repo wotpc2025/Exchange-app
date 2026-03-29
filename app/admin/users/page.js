@@ -20,6 +20,9 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [banModal, setBanModal] = useState(null);
+  const [banKind, setBanKind] = useState("7d");
+  const [banNote, setBanNote] = useState("");
 
   const load = async () => {
     try {
@@ -40,6 +43,15 @@ export default function AdminUsersPage() {
     }
     load();
   }, [session, status]);
+
+  useEffect(() => {
+    if (!banModal) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setBanModal(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [banModal]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -80,34 +92,51 @@ export default function AdminUsersPage() {
     await post(u.id, `/api/admin/users/${u.id}/warn/red`, { reason });
   };
 
-  const banUser = async (u) => {
+  const openBanModal = (u) => {
     if ((u.red_count || 0) < 1) {
       alert("ต้องมีใบแดงก่อนถึงจะแบนได้");
       return;
     }
+    setBanModal(u);
+    setBanKind("7d");
+    setBanNote("");
+  };
 
-    const type = prompt(
-      "พิมพ์ประเภทแบน: temporary หรือ permanent",
-      "temporary"
-    );
-    if (type !== "temporary" && type !== "permanent") return;
-
-    let amount;
-    let unit;
-    if (type === "temporary") {
-      amount = prompt("จำนวน (ตัวเลข):", "7");
-      unit = prompt("หน่วย: day หรือ month หรือ year", "day");
-      if (!amount || !unit) return;
+  const submitBanModal = async () => {
+    if (!banModal) return;
+    if ((banModal.red_count || 0) < 1) {
+      alert("ต้องมีใบแดงก่อนถึงจะแบนได้");
+      return;
     }
+    const reason = banNote.trim();
+    const payload =
+      banKind === "perm"
+        ? { ban_type: "permanent", reason }
+        : {
+            ban_type: "temporary",
+            amount: banKind === "7d" ? 7 : 15,
+            unit: "day",
+            reason,
+          };
 
-    const reason = prompt("เหตุผลแบน (ไม่ใส่ก็ได้):") || "";
-
-    await post(u.id, `/api/admin/users/${u.id}/ban`, {
-      ban_type: type,
-      amount,
-      unit,
-      reason,
-    });
+    setBusyId(banModal.id);
+    try {
+      const res = await fetch(`/api/admin/users/${banModal.id}/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "แบนไม่สำเร็จ");
+        return;
+      }
+      await load();
+      setBanModal(null);
+      setBanNote("");
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const unbanUser = async (u) => {
@@ -145,8 +174,8 @@ export default function AdminUsersPage() {
               <h1 className="text-3xl font-black text-amber-500">
                 จัดการผู้ใช้
               </h1>
-              <p className="ttext-sm text-slate-400 mt-1">
-                ให้ใบเหลือง/ใบแดง และแบนผู้ใช้ role student (ใบเหลือง 2 ใบ → ใบแดงอัตโนมัติ)
+              <p className="text-sm text-slate-400 mt-1">
+                แบนได้เฉพาะ 7 วัน / 15 วัน / ถาวร — ครบกำหนดแบนชั่วคราวจะปลดอัตโนมัติเมื่อเข้าสู่ระบบ ปลดแบนก่อนกำหนดได้ที่ปุ่มปลดแบน
               </p>
           </div>
         </div>
@@ -214,10 +243,10 @@ export default function AdminUsersPage() {
                           className="block hover:underline underline-offset-2"
                         >
                           <p className="font-bold text-white truncate">
-                            {u.email}
+                            {(u.name && u.name.trim()) ? u.name.trim() : u.email}
                           </p>
                           <p className="text-xs text-slate-400 truncate">
-                            {u.name || "—"}
+                            {(u.name && u.name.trim()) ? u.email : "\u00a0"}
                           </p>
                         </Link>
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -262,8 +291,9 @@ export default function AdminUsersPage() {
                       </button>
 
                       <button
+                        type="button"
                         disabled={isBusy}
-                        onClick={() => banUser(u)}
+                        onClick={() => openBanModal(u)}
                         className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-900/60 bg-red-950/35 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-60"
                       >
                         แบน
@@ -287,6 +317,66 @@ export default function AdminUsersPage() {
         )}
         </div>
       </div>
+
+      {banModal ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setBanModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-black text-red-200">แบนผู้ใช้</h2>
+            <p className="text-xs text-slate-400 mt-2">
+              {(banModal.name && banModal.name.trim()) || banModal.email}
+            </p>
+
+            <label className="block text-xs font-bold text-slate-400 mt-4">ระยะเวลาแบน</label>
+            <select
+              value={banKind}
+              onChange={(e) => setBanKind(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950/80 py-2.5 px-3 text-sm text-white outline-none focus:border-red-500/40"
+            >
+              <option value="7d">แบน 7 วัน</option>
+              <option value="15d">แบน 15 วัน</option>
+              <option value="perm">แบนถาวร</option>
+            </select>
+
+            <label className="block text-xs font-bold text-slate-400 mt-4">หมายเหตุ</label>
+            <textarea
+              value={banNote}
+              onChange={(e) => setBanNote(e.target.value)}
+              rows={3}
+              placeholder="เหตุผลแบน (ไม่บังคับ)"
+              className="mt-1 w-full resize-y rounded-xl border border-white/10 bg-slate-950/80 py-2 px-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-red-500/40"
+            />
+            <p className="text-[10px] text-slate-500 mt-2">
+              แบนชั่วคราวหมดอายุจะปลดอัตโนมัติเมื่อผู้ใช้เข้าสู่ระบบ — ปลดก่อนกำหนดใช้ปุ่มปลดแบนในรายการนี้
+            </p>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setBanModal(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-slate-300 hover:bg-white/5"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={busyId === banModal.id}
+                onClick={() => submitBanModal()}
+                className="px-4 py-2 rounded-xl text-xs font-black border border-red-900/60 bg-red-950/40 text-red-100 hover:bg-red-950 hover:text-white transition-all disabled:opacity-50"
+              >
+                ยืนยันแบน
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

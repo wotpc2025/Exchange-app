@@ -63,9 +63,6 @@ export default function AdminReportsPage() {
   const [punishModal, setPunishModal] = useState(null);
   const [punishKind, setPunishKind] = useState("yellow");
   const [punishNote, setPunishNote] = useState("");
-  const [customBanType, setCustomBanType] = useState("temporary");
-  const [customAmount, setCustomAmount] = useState("7");
-  const [customUnit, setCustomUnit] = useState("day");
 
   const load = async () => {
     try {
@@ -188,7 +185,6 @@ export default function AdminReportsPage() {
     let amount = 7;
     if (preset === "7d") amount = 7;
     else if (preset === "15d") amount = 15;
-    else if (preset === "30d") amount = 30;
 
     const payload =
       preset === "permanent"
@@ -219,61 +215,10 @@ export default function AdminReportsPage() {
     }
   };
 
-  /** แบนแบบกำหนดเอง (ชั่วคราว/ถาวร + จำนวน) — @returns {Promise<boolean>} */
-  const executeCustomBan = async (report, reasonText) => {
-    if ((Number(report?.reported_red_count) || 0) < 1) {
-      alert("ผู้ใช้นี้ยังไม่มีใบแดง จึงยังแบนไม่ได้");
-      return false;
-    }
-    const fallback = report?.reason ? String(report.reason).slice(0, 400) : "";
-    const reason =
-      reasonText != null && String(reasonText).trim() !== ""
-        ? String(reasonText).trim().slice(0, 400)
-        : fallback;
-
-    const body =
-      customBanType === "permanent"
-        ? { ban_type: "permanent", reason }
-        : {
-            ban_type: "temporary",
-            amount: Number(customAmount),
-            unit: customUnit,
-            reason,
-          };
-
-    if (customBanType === "temporary") {
-      if (!Number.isFinite(body.amount) || body.amount < 1) {
-        alert("ระบุจำนวนระยะเวลาให้ถูกต้อง");
-        return false;
-      }
-    }
-
-    setBusyId(report.id);
-    try {
-      const res = await fetch(`/api/admin/users/${report.reported_user_id}/ban`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || "แบนไม่สำเร็จ");
-        return false;
-      }
-      await load();
-      return true;
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const openPunishModal = (report) => {
     setPunishModal(report);
     setPunishKind("yellow");
     setPunishNote("");
-    setCustomBanType("temporary");
-    setCustomAmount("7");
-    setCustomUnit("day");
   };
 
   const submitPunishModal = async () => {
@@ -283,7 +228,7 @@ export default function AdminReportsPage() {
     const redOk = (Number(report?.reported_red_count) || 0) >= 1;
 
     let ok = false;
-    if (punishKind.startsWith("ban_") || punishKind === "ban_custom") {
+    if (["ban_7d", "ban_15d", "ban_perm"].includes(punishKind)) {
       if (!redOk) {
         alert("ผู้ใช้นี้ยังไม่มีใบแดง จึงยังแบนไม่ได้");
         return;
@@ -303,14 +248,8 @@ export default function AdminReportsPage() {
       case "ban_15d":
         ok = await banPreset(report, "15d", note);
         break;
-      case "ban_30d":
-        ok = await banPreset(report, "30d", note);
-        break;
       case "ban_perm":
         ok = await banPreset(report, "permanent", note);
-        break;
-      case "ban_custom":
-        ok = await executeCustomBan(report, note);
         break;
       default:
         return;
@@ -416,10 +355,12 @@ export default function AdminReportsPage() {
               {filtered.map((r) => {
                 const isBusy = busyId === r.id;
                 const severity = getSeverity(r);
+                const st = normalizeReportStatus(r.status);
+                const caseClosed = st === "closed";
                 return (
                   <div
                     key={r.id}
-                    className="glass-card p-5 rounded-[30px] border border-white/5 bg-slate-900/50"
+                    className={`glass-card p-5 rounded-[30px] border border-white/5 bg-slate-900/50 ${caseClosed ? "opacity-75" : ""}`}
                   >
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="min-w-0">
@@ -494,48 +435,66 @@ export default function AdminReportsPage() {
                           {r.created_at ? new Date(r.created_at).toLocaleString("th-TH") : ""}
                         </p>
 
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <button
-                            disabled={isBusy}
-                            onClick={() => updateStatus(r.id, "reviewed")}
-                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-blue-500/40 bg-blue-500/10 text-blue-100 hover:bg-blue-500 hover:text-white transition-all disabled:opacity-60"
+                        <div className="flex flex-col items-end gap-2 w-full max-w-xs">
+                          <label className="text-[10px] text-slate-500 self-end">
+                            สถานะเคส
+                          </label>
+                          <select
+                            disabled={caseClosed || isBusy}
+                            value={caseClosed ? "closed" : st === "open" ? "" : st}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (!v) return;
+                              updateStatus(r.id, v);
+                            }}
+                            className="w-full rounded-xl border border-white/10 bg-slate-950/80 py-2.5 px-3 text-xs text-white outline-none focus:border-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            ทำเครื่องหมายกำลังตรวจสอบ
-                          </button>
-                          <button
-                            disabled={isBusy}
-                            onClick={() => updateStatus(r.id, "closed")}
-                            className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-green-600/50 bg-green-600/15 text-green-100 hover:bg-green-600 hover:text-white transition-all disabled:opacity-60"
-                          >
-                            ปิดเคส
-                          </button>
+                            {st === "open" ? (
+                              <option value="">เลือก: กำลังตรวจสอบ หรือ ปิดเคส</option>
+                            ) : null}
+                            {!caseClosed ? (
+                              <>
+                                <option value="reviewed">กำลังตรวจสอบ</option>
+                                <option value="closed">ปิดเคส</option>
+                              </>
+                            ) : (
+                              <option value="closed">ปิดเคสแล้ว — แก้ไขไม่ได้</option>
+                            )}
+                          </select>
+                          {caseClosed ? (
+                            <p className="text-[10px] text-slate-500 text-right">
+                              ปิดเคสแล้ว — ไม่สามารถดำเนินการลงโทษหรือปลดแบนจากรายการนี้ได้
+                            </p>
+                          ) : null}
                         </div>
 
-                        <div className="flex flex-wrap justify-end gap-2">
-                          {!r.reported_active_ban_type ? (
-                            <button
-                              type="button"
-                              disabled={isBusy}
-                              onClick={() => openPunishModal(r)}
-                              className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500 hover:text-slate-950 transition-all disabled:opacity-60"
-                            >
-                              ดำเนินการลงโทษ
-                              <span className="block text-[9px] font-normal text-slate-500 mt-0.5 tracking-normal">
-                                Take action
-                              </span>
-                            </button>
-                          ) : null}
-                          {r.reported_active_ban_type ? (
-                            <button
-                              type="button"
-                              disabled={isBusy}
-                              onClick={() => unbanUser(r)}
-                              className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-slate-500/40 text-slate-200 hover:bg-white/10 transition-all disabled:opacity-60"
-                            >
-                              ปลดแบน
-                            </button>
-                          ) : null}
-                        </div>
+                        {!caseClosed ? (
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {!r.reported_active_ban_type ? (
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => openPunishModal(r)}
+                                className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-amber-500/40 bg-amber-500/10 text-amber-100 hover:bg-amber-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                              >
+                                ดำเนินการลงโทษ
+                                <span className="block text-[9px] font-normal text-slate-500 mt-0.5 tracking-normal">
+                                  Take action
+                                </span>
+                              </button>
+                            ) : null}
+                            {r.reported_active_ban_type ? (
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => unbanUser(r)}
+                                className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-slate-500/40 text-slate-200 hover:bg-white/10 transition-all disabled:opacity-60"
+                              >
+                                ปลดแบน
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -579,44 +538,11 @@ export default function AdminReportsPage() {
               <option value="red">ออกใบแดง</option>
               <option value="ban_7d">แบน 7 วัน (ต้องมีใบแดงก่อน)</option>
               <option value="ban_15d">แบน 15 วัน</option>
-              <option value="ban_30d">แบน 30 วัน</option>
               <option value="ban_perm">แบนถาวร</option>
-              <option value="ban_custom">แบนแบบกำหนดเอง</option>
             </select>
-
-            {punishKind === "ban_custom" ? (
-              <div className="mt-3 space-y-2 rounded-xl border border-white/5 bg-slate-950/50 p-3">
-                <label className="block text-[10px] text-slate-500">รูปแบบแบน</label>
-                <select
-                  value={customBanType}
-                  onChange={(e) => setCustomBanType(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-slate-900 py-2 px-2 text-sm text-white outline-none"
-                >
-                  <option value="temporary">แบนชั่วคราว</option>
-                  <option value="permanent">แบนถาวร</option>
-                </select>
-                {customBanType === "temporary" ? (
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <input
-                      type="number"
-                      min={1}
-                      value={customAmount}
-                      onChange={(e) => setCustomAmount(e.target.value)}
-                      className="min-w-[5rem] flex-1 rounded-lg border border-white/10 bg-slate-900 py-2 px-2 text-sm text-white"
-                    />
-                    <select
-                      value={customUnit}
-                      onChange={(e) => setCustomUnit(e.target.value)}
-                      className="rounded-lg border border-white/10 bg-slate-900 py-2 px-2 text-sm text-white"
-                    >
-                      <option value="day">วัน</option>
-                      <option value="month">เดือน</option>
-                      <option value="year">ปี</option>
-                    </select>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+            <p className="text-[10px] text-slate-500 mt-2">
+              แบนชั่วคราวจะปลดอัตโนมัติเมื่อครบกำหนด (ตรวจตอนเข้าสู่ระบบ) — ปลดก่อนกำหนดได้ที่จัดการผู้ใช้
+            </p>
 
             <label className="block text-xs font-bold text-slate-400 mt-4">หมายเหตุ</label>
             <textarea
