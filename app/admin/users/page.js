@@ -87,11 +87,6 @@ export default function AdminUsersPage() {
     await post(u.id, `/api/admin/users/${u.id}/warn/yellow`, { reason });
   };
 
-  const giveRed = async (u) => {
-    const reason = prompt("เหตุผลใบแดง (ไม่ใส่ก็ได้):") || "";
-    await post(u.id, `/api/admin/users/${u.id}/warn/red`, { reason });
-  };
-
   const openBanModal = (u) => {
     if ((u.red_count || 0) < 1) {
       alert("ต้องมีใบแดงก่อนถึงจะแบนได้");
@@ -175,7 +170,7 @@ export default function AdminUsersPage() {
                 จัดการผู้ใช้
               </h1>
               <p className="text-sm text-slate-400 mt-1">
-                แบนได้เฉพาะ 7 วัน / 15 วัน / ถาวร — ครบกำหนดแบนชั่วคราวจะปลดอัตโนมัติเมื่อเข้าสู่ระบบ ปลดแบนก่อนกำหนดได้ที่ปุ่มปลดแบน
+                ออกได้เฉพาะใบเหลือง — ครบ 2 ใบเหลืองระบบออกใบแดงอัตโนมัติ แบนได้ 7 / 15 วันหรือถาวร (ครบกำหนดแบนชั่วคราวจะปลดเมื่อเข้าสู่ระบบ)
               </p>
           </div>
         </div>
@@ -276,18 +271,13 @@ export default function AdminUsersPage() {
 
                     <div className="flex flex-wrap gap-2">
                       <button
+                        type="button"
                         disabled={isBusy}
                         onClick={() => giveYellow(u)}
                         className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 transition-all disabled:opacity-60"
+                        title="ครบ 2 ใบเหลือง ระบบจะออกใบแดงอัตโนมัติ"
                       >
                         ให้ใบเหลือง
-                      </button>
-                      <button
-                        disabled={isBusy}
-                        onClick={() => giveRed(u)}
-                        className="px-4 py-2 rounded-xl text-xs font-black tracking-wide border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white transition-all disabled:opacity-60"
-                      >
-                        ให้ใบแดง
                       </button>
 
                       <button

@@ -167,7 +167,9 @@ export default function AdminReportsPage() {
       });
 
       await load();
-      alert(type === "yellow" ? "ออกใบเหลืองเรียบร้อย" : "ออกใบแดงเรียบร้อย");
+      alert(
+        "ออกใบเหลืองเรียบร้อย — ครบ 2 ใบเหลืองระบบจะออกใบแดงอัตโนมัติ"
+      );
       return true;
     } finally {
       setBusyId(null);
@@ -238,9 +240,6 @@ export default function AdminReportsPage() {
     switch (punishKind) {
       case "yellow":
         ok = await issueWarning(report, "yellow", note || undefined);
-        break;
-      case "red":
-        ok = await issueWarning(report, "red", note || undefined);
         break;
       case "ban_7d":
         ok = await banPreset(report, "7d", note);
@@ -520,7 +519,6 @@ export default function AdminReportsPage() {
             <h2 id="punish-modal-title" className="text-lg font-black text-amber-400">
               ดำเนินการลงโทษ
             </h2>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Take action</p>
             <p className="text-xs text-slate-400 mt-3">
               ผู้ถูกรายงาน:{" "}
               <span className="text-slate-200">
@@ -535,12 +533,13 @@ export default function AdminReportsPage() {
               className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950/80 py-2.5 px-3 text-sm text-white outline-none focus:border-amber-500/50"
             >
               <option value="yellow">ออกใบเหลือง</option>
-              <option value="red">ออกใบแดง</option>
-              <option value="ban_7d">แบน 7 วัน (ต้องมีใบแดงก่อน)</option>
+              <option value="ban_7d">แบน 7 วัน</option>
               <option value="ban_15d">แบน 15 วัน</option>
               <option value="ban_perm">แบนถาวร</option>
             </select>
             <p className="text-[10px] text-slate-500 mt-2">
+              ออกได้เฉพาะใบเหลือง — เมื่อครบ 2 ใบเหลือง ระบบจะออกใบแดงให้อัตโนมัติ
+              <br />
               แบนชั่วคราวจะปลดอัตโนมัติเมื่อครบกำหนด (ตรวจตอนเข้าสู่ระบบ) — ปลดก่อนกำหนดได้ที่จัดการผู้ใช้
             </p>
 
