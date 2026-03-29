@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAppSession, requireAdmin } from "@/lib/auth.js";
 import { db } from "@/lib/db.js";
-import { ensureUserReportsTable } from "@/lib/user-reports-table.js";
 import { loadActiveBansByUserId, loadWarningCountsByUserId } from "@/lib/admin-reports-enrich.js";
 
 async function fetchReportRows(connection) {
